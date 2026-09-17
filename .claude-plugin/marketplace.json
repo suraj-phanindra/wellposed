@@ -1,0 +1,15 @@
+{
+  "name": "wellposed",
+  "description": "Lint TypeSafe System One (jev) requests before you send them.",
+  "owner": {
+    "name": "Suraj Phanindra",
+    "url": "https://github.com/suraj-phanindra"
+  },
+  "plugins": [
+    {
+      "name": "wellposed",
+      "description": "Turn intent into a well-posed jev request, then lint it: deterministic structural checks plus jev-on-jev semantic checks, with a labelled corpus to score them.",
+      "source": "./"
+    }
+  ]
+}

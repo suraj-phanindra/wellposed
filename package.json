@@ -1,0 +1,21 @@
+{
+  "name": "wellposed",
+  "version": "0.1.0",
+  "description": "Lint TypeSafe System One (jev) requests before you send them.",
+  "type": "module",
+  "bin": { "wellposed": "skills/wellposed/scripts/wellposed.mjs" },
+  "exports": {
+    ".": "./skills/wellposed/scripts/structural.mjs",
+    "./semantic": "./skills/wellposed/scripts/semantic.mjs"
+  },
+  "files": ["skills/", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test skills/wellposed/eval/",
+    "eval": "node skills/wellposed/eval/agreement.mjs",
+    "lint:example": "node skills/wellposed/scripts/wellposed.mjs lint skills/wellposed/examples/support-ticket.json"
+  },
+  "keywords": ["typesafe", "jev", "system-one", "lint", "claude-code", "codex", "agent-skill"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/suraj-phanindra/wellposed.git" }
+}

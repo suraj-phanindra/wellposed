@@ -1,0 +1,38 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "ticket": {
+      "subject": "Duplicate charge",
+      "messages": [
+        {"from": "customer", "text": "I was charged twice for order A-104. Please refund the duplicate."},
+        {"from": "support", "text": "We are checking the charges."}
+      ]
+    },
+    "order": {"id": "A-104", "charges": [{"amount_usd": 49}, {"amount_usd": 49}]},
+    "refund_policy": "Duplicate charges are eligible for a refund.",
+    "customer_lifetime_value": 4210
+  },
+  "questions": {
+    "requested_refund": {
+      "type": "noul",
+      "instructions": "Did the customer explicitly request a refund in `ticket.messages[0].text`?"
+    },
+    "route_team": {
+      "type": "choice",
+      "instructions": "Which team should handle `ticket.subject`?",
+      "criteria": {"billing": null, "technical": null, "account": null}
+    },
+    "urgency": {
+      "type": "noul",
+      "instructions": "How urgent is this ticket and does it involve a billing error?"
+    },
+    "charge_total": {
+      "type": "noul",
+      "instructions": "Calculate the sum of `order.charges` and tell us whether it is over 90 dollars."
+    },
+    "agent_name": {
+      "type": "noul",
+      "instructions": "Is `ticket.assigned_agent.name` a member of the billing team?"
+    }
+  }
+}

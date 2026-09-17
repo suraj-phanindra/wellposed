@@ -1,0 +1,530 @@
+{
+  "$comment": "wellposed evaluation corpus. 40 jev questions generated from realistic intents on 2026-09-17, labelled against a rubric pre-registered before generation. See eval/RUBRIC.md.",
+  "model": "jev-1.13",
+  "generated": "2026-09-17",
+  "defects": {
+    "D1": "degree-as-noul",
+    "D2": "bundled-judgments",
+    "D3": "overlapping-choice-options",
+    "D4": "no-escape-hatch",
+    "D5": "non-concrete-score-levels",
+    "D6": "unanswerable-from-state",
+    "D7": "syntax-or-type-error"
+  },
+  "items": [
+    {
+      "id": 1,
+      "intent": "flag support tickets that need a human fast",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this ticket require urgent human attention?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 2,
+      "intent": "rate how urgent a ticket is",
+      "question": {
+        "type": "noul",
+        "instructions": "How urgent is this ticket?"
+      },
+      "label": "degree-as-noul",
+      "defect_code": "D1"
+    },
+    {
+      "id": 3,
+      "intent": "route a ticket to the right team",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this ticket?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "account": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 4,
+      "intent": "is the customer angry",
+      "question": {
+        "type": "choice",
+        "instructions": "What is the customer's tone?",
+        "criteria": {
+          "calm": null,
+          "frustrated": null,
+          "angry": null,
+          "furious": null
+        }
+      },
+      "label": "overlapping-choice-options",
+      "defect_code": "D3"
+    },
+    {
+      "id": 5,
+      "intent": "does this listing mention parking",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the listing state that parking is included?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 6,
+      "intent": "how many bedrooms does this listing have",
+      "question": {
+        "type": "choice",
+        "instructions": "How many bedrooms does this listing advertise?",
+        "criteria": {
+          "studio": null,
+          "1": null,
+          "2": null,
+          "3": null,
+          "4+": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 7,
+      "intent": "is the rent in range and pets allowed",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the rent within budget and are pets allowed?"
+      },
+      "label": "bundled-judgments",
+      "defect_code": "D2"
+    },
+    {
+      "id": 8,
+      "intent": "grade how well a listing matches the renter brief",
+      "question": {
+        "type": "score",
+        "instructions": "How well does this listing match the renter's stated requirements?",
+        "criteria": [
+          "no meaningful overlap",
+          "meets some requirements",
+          "meets most requirements",
+          "meets every stated requirement"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 9,
+      "intent": "detect hedged claims in a verification sentence",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this sentence assert the claim as an established fact, rather than hedging, speculating, or describing it as conditional or future?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 10,
+      "intent": "pick the product a review is about",
+      "question": {
+        "type": "choice",
+        "instructions": "Which product is this review about?",
+        "criteria": {
+          "Pro plan": null,
+          "Starter plan": null,
+          "Enterprise plan": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 11,
+      "intent": "is this resume a fit for the role",
+      "question": {
+        "type": "score",
+        "instructions": "How well does this candidate fit the role?",
+        "criteria": [
+          "clearly unqualified",
+          "partially qualified",
+          "qualified",
+          "exceptionally qualified"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 12,
+      "intent": "does the candidate have python experience",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the resume show hands-on Python experience?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 13,
+      "intent": "how many years of experience does this candidate have",
+      "question": {
+        "type": "noul",
+        "instructions": "How many years of professional experience does this candidate have?"
+      },
+      "label": "degree-as-noul",
+      "defect_code": "D1"
+    },
+    {
+      "id": 14,
+      "intent": "is this comment toxic",
+      "question": {
+        "type": "noul",
+        "instructions": "Is this comment toxic?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 15,
+      "intent": "what kind of policy violation is this",
+      "question": {
+        "type": "choice",
+        "instructions": "Which policy does this content violate?",
+        "criteria": {
+          "harassment": null,
+          "spam": null,
+          "adult content": null,
+          "violence": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 16,
+      "intent": "how severe is the violation",
+      "question": {
+        "type": "score",
+        "instructions": "How severe is this policy violation?",
+        "criteria": [
+          "borderline",
+          "clear but minor",
+          "serious",
+          "egregious"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 17,
+      "intent": "should this PR be reviewed by a senior engineer",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this pull request touch security-sensitive or high-blast-radius code?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 18,
+      "intent": "is this bug report actionable",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this bug report contain enough detail to reproduce the problem?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 19,
+      "intent": "triage bug priority",
+      "question": {
+        "type": "choice",
+        "instructions": "What priority is this bug?",
+        "criteria": {
+          "P0": null,
+          "P1": null,
+          "P2": null,
+          "P3": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 20,
+      "intent": "does this email need a reply today",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this email require a reply today?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 21,
+      "intent": "classify the sender's intent",
+      "question": {
+        "type": "choice",
+        "instructions": "What is the sender asking for?",
+        "criteria": {
+          "meeting request": null,
+          "pricing question": null,
+          "support issue": null,
+          "introduction": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 22,
+      "intent": "is this lead worth calling",
+      "question": {
+        "type": "score",
+        "instructions": "How promising is this lead?",
+        "criteria": [
+          "not a fit",
+          "weak fit",
+          "good fit",
+          "ideal fit"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 23,
+      "intent": "did the rep follow the discovery script",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the rep ask about budget, timeline, and decision process?"
+      },
+      "label": "bundled-judgments",
+      "defect_code": "D2"
+    },
+    {
+      "id": 24,
+      "intent": "is this invoice a duplicate",
+      "question": {
+        "type": "noul",
+        "instructions": "Is this invoice a duplicate of one already submitted?"
+      },
+      "label": "unanswerable-from-state",
+      "defect_code": "D6"
+    },
+    {
+      "id": 25,
+      "intent": "what expense category is this",
+      "question": {
+        "type": "choice",
+        "instructions": "Which expense category does this receipt belong to?",
+        "criteria": {
+          "travel": null,
+          "meals": null,
+          "software": null,
+          "office supplies": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 26,
+      "intent": "does the citation support the claim",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the cited passage support the claim made?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 27,
+      "intent": "rank search results by relevance",
+      "question": {
+        "type": "score",
+        "instructions": "How relevant is this document to the query?",
+        "criteria": [
+          "irrelevant",
+          "tangentially related",
+          "relevant",
+          "directly answers the query"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 28,
+      "intent": "is the answer grounded in the retrieved context",
+      "question": {
+        "type": "noul",
+        "instructions": "Is every factual statement in the answer supported by the provided context?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 29,
+      "intent": "pick the right API endpoint for a request",
+      "question": {
+        "type": "choice",
+        "instructions": "Which endpoint should handle this request?",
+        "criteria": {
+          "/search": null,
+          "/create": null,
+          "/update": null,
+          "/delete": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 30,
+      "intent": "is this log line an error worth paging on",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this log line indicate a user-facing outage?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 31,
+      "intent": "how confident are we the extraction is right",
+      "question": {
+        "type": "noul",
+        "instructions": "How confident should we be that the extracted rent value is correct?"
+      },
+      "label": "degree-as-noul",
+      "defect_code": "D1"
+    },
+    {
+      "id": 32,
+      "intent": "is the meeting note missing action items",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this meeting note record at least one concrete action item with an owner?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 33,
+      "intent": "what stage is this deal in",
+      "question": {
+        "type": "choice",
+        "instructions": "What stage is this deal in?",
+        "criteria": {
+          "discovery": null,
+          "evaluation": null,
+          "negotiation": null,
+          "closed": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 34,
+      "intent": "is this a good headline",
+      "question": {
+        "type": "score",
+        "instructions": "How compelling is this headline?",
+        "criteria": [
+          "weak",
+          "okay",
+          "strong",
+          "excellent"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 35,
+      "intent": "does this copy match our brand voice",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this copy match the brand voice described in the guidelines?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 36,
+      "intent": "will this customer churn",
+      "question": {
+        "type": "noul",
+        "instructions": "Will this customer cancel their subscription next month?"
+      },
+      "label": "unanswerable-from-state",
+      "defect_code": "D6"
+    },
+    {
+      "id": 37,
+      "intent": "is the shipping address complete",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this address contain all fields required for delivery?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 38,
+      "intent": "which sentiment",
+      "question": {
+        "type": "choice",
+        "instructions": "What is the sentiment?",
+        "criteria": {
+          "positive": null,
+          "negative": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4"
+    },
+    {
+      "id": 39,
+      "intent": "is this legal clause risky",
+      "question": {
+        "type": "score",
+        "instructions": "How much risk does this clause create for us?",
+        "criteria": [
+          "standard",
+          "slightly unfavorable",
+          "materially unfavorable",
+          "unacceptable"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null
+    },
+    {
+      "id": 40,
+      "intent": "does the transcript show the customer agreed to the price",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the customer verbally agree to the quoted price?"
+      },
+      "label": "well-posed",
+      "defect_code": null
+    }
+  ],
+  "corrections": [
+    {
+      "id": 34,
+      "was": "D5 non-concrete-score-levels",
+      "now": "well-posed",
+      "reason": "The pre-registered rubric defines D5 as levels that are 'not monotonically ordered' or 'not mutually distinguishable situations'. weak/okay/strong/excellent are ordered and distinguishable, so they do not meet the rubric text. The original label applied the docs' style guidance ('levels must describe concrete situations') instead of the rubric. Rubric fidelity wins. The corresponding lint rule score/bare-levels was demoted warn -> info for the same reason.",
+      "effect": "defect count 17 -> 16; rate 42.5% -> 40.0%. Still above the pre-registered 20% build threshold."
+    }
+  ]
+}
