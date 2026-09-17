@@ -2,6 +2,8 @@
 
 **Lint your jev requests before they come back confidently wrong.**
 
+[![npm](https://img.shields.io/npm/v/wellposed)](https://www.npmjs.com/package/wellposed) [![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 ```
   question "route_team"
     warn   Choice "route_team" has no "other"/"none of the above" option. If an input fits none of
@@ -208,21 +210,28 @@ reads skills from, or paste
 [SKILL.md](https://raw.githubusercontent.com/suraj-phanindra/wellposed/main/skills/wellposed/SKILL.md)
 into the conversation.
 
+### Just the CLI, no agent
+
+```sh
+npx wellposed lint request.json    # nothing to install
+npm i -g wellposed                 # or put it on PATH
+```
+
 Node ≥ 18, zero dependencies. No API key needed for the structural checks.
 
 ## Use
 
-If you installed as a skill rather than from npm, the CLI lives inside the skill directory. Locate it
-with `find ~/.claude/plugins ~/.agents/skills ~/.codex/skills -name wellposed.mjs -path '*wellposed/scripts/*' | head -1`
-and call `node <that path>` wherever `wellposed` appears below.
-
 ```sh
-wellposed lint request.json               # structural: free, offline, no API key
-wellposed lint request.json --semantic    # + jev-on-jev checks (needs TYPESAFE_API_KEY)
-wellposed lint - < request.json           # reads stdin
-wellposed rules                           # every rule and where it comes from
-wellposed eval                            # score the linter against the labelled corpus
+npx wellposed lint request.json               # structural: free, offline, no API key
+npx wellposed lint request.json --semantic    # + jev-on-jev checks (needs TYPESAFE_API_KEY)
+npx wellposed lint - < request.json           # reads stdin
+npx wellposed rules                           # every rule and where it comes from
+npx wellposed eval                            # score the linter against the labelled corpus
 ```
+
+Already installed as a skill and want to run it offline? The CLI ships inside the skill directory -
+`find ~/.claude/plugins ~/.agents/skills ~/.codex/skills -name wellposed.mjs -path '*wellposed/scripts/*' | head -1`
+and call `node <that path>` instead.
 
 Exit code is `1` when errors are found, so it drops into CI unchanged. `--json` for machine output,
 `--max-warnings <n>` to fail on warnings too.
@@ -235,7 +244,7 @@ you should silence it:
 ```
 
 ```sh
-wellposed lint request.json --config wellposed.config.json
+npx wellposed lint request.json --config wellposed.config.json
 ```
 
 A working example ships at

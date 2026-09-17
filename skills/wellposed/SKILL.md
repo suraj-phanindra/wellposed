@@ -9,7 +9,7 @@ description: >
   TypeSafe.
 metadata:
   short-description: Write and lint jev requests that mean what you think they mean.
-  version: 0.1.3
+  version: 0.1.4
   homepage: https://github.com/suraj-phanindra/wellposed
 ---
 
@@ -87,26 +87,23 @@ Limits: 64k tokens for state + all questions together, 32k for state + the longe
 
 ## Lint it before you send it
 
-**Locate the CLI first.** Your shell's working directory is the user's project, not this skill's
-directory, so a bare `node scripts/wellposed.mjs` will not resolve in either host. Find it once:
+```sh
+npx wellposed lint request.json              # free, offline, no API key
+npx wellposed lint request.json --semantic   # + jev-on-jev checks (needs TYPESAFE_API_KEY)
+npx wellposed rules                          # every rule and where it comes from
+npx wellposed eval                           # score the linter against the labelled corpus
+```
+
+No network? The CLI also ships inside this skill directory, but your shell's working directory is the
+user's project, not this skill's, so a bare `node scripts/wellposed.mjs` will not resolve. Locate it:
 
 ```sh
 WP=$(find ~/.claude/plugins ~/.agents/skills ~/.codex/skills .agents/skills \
         -name wellposed.mjs -path '*wellposed/scripts/*' 2>/dev/null | head -1)
+node "$WP" lint request.json
 ```
 
-Then:
-
-```sh
-node "$WP" lint request.json              # free, offline, no API key
-node "$WP" lint request.json --semantic   # + jev-on-jev checks (needs TYPESAFE_API_KEY)
-node "$WP" rules                          # every rule and where it comes from
-node "$WP" eval                           # score the linter against the labelled corpus
-```
-
-If `wellposed` is on PATH, use `wellposed lint request.json` directly.
-
-Do not rely on `${CLAUDE_PLUGIN_ROOT}` or `${CLAUDE_SKILL_DIR}` — they expand to nothing outside
+Never rely on `${CLAUDE_PLUGIN_ROOT}` or `${CLAUDE_SKILL_DIR}` — they expand to nothing outside
 Claude Code, which is precisely the case this skill has to survive.
 
 The two layers do different jobs, and the split is deliberate:
