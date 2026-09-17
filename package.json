@@ -1,7 +1,7 @@
 {
   "name": "wellposed",
-  "version": "0.1.2",
-  "description": "Lint TypeSafe System One (jev) requests before you send them.",
+  "version": "0.1.3",
+  "description": "Lint your jev requests before they come back confidently wrong.",
   "type": "module",
   "bin": {
     "wellposed": "skills/wellposed/scripts/wellposed.mjs"

@@ -1,6 +1,6 @@
 {
   "name": "wellposed",
-  "description": "Lint TypeSafe System One (jev) requests before you send them.",
+  "description": "Lint your jev requests before they come back confidently wrong.",
   "owner": {
     "name": "Suraj Phanindra",
     "url": "https://github.com/suraj-phanindra"

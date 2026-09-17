@@ -1,6 +1,6 @@
 # wellposed
 
-**Lint TypeSafe System One (jev) requests before you send them.**
+**Lint your jev requests before they come back confidently wrong.**
 
 ```
   question "route_team"
