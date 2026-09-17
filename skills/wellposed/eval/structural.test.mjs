@@ -177,3 +177,36 @@ test('the linter catches every no-escape-hatch item in the corpus', async () => 
       `corpus item ${it.id} (${it.intent}) should be caught`);
   }
 });
+
+// --- the README badge is a static label, so back it with a check ------------
+
+test('the package really has zero dependencies, as the badge claims', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  // ../../../ from eval/ is the package root both in this repo and in node_modules/wellposed/
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+    assert.equal(pkg[field], undefined,
+      `${field} is set — the README's "dependencies 0" badge is now a lie. Remove the dependency or fix the badge.`);
+  }
+});
+
+test('nothing outside node: builtins is imported', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const dirs = [join(here, '..', 'scripts'), here];
+  for (const dir of dirs) {
+    for (const f of readdirSync(dir).filter((x) => x.endsWith('.mjs'))) {
+      const src = readFileSync(join(dir, f), 'utf8');
+      for (const m of src.matchAll(/(?:from|import\(?)\s*['"]([^'"]+)['"]/g)) {
+        const spec = m[1];
+        assert.ok(spec.startsWith('node:') || spec.startsWith('.'),
+          `${f} imports "${spec}" — only node: builtins and relative paths are allowed`);
+      }
+    }
+  }
+});
