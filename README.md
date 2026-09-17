@@ -89,6 +89,10 @@ Node ≥ 18, zero dependencies. Nothing to install and no API key needed for the
 
 ## Use
 
+If you installed as a skill rather than from npm, the CLI lives inside the skill directory. Locate it
+with `find ~/.claude/plugins ~/.agents/skills ~/.codex/skills -name wellposed.mjs -path '*wellposed/scripts/*' | head -1`
+and call `node <that path>` wherever `wellposed` appears below.
+
 ```sh
 wellposed lint request.json               # structural: free, offline, no API key
 wellposed lint request.json --semantic    # + jev-on-jev checks (needs TYPESAFE_API_KEY)
@@ -109,6 +113,8 @@ Silence a rule whose premise doesn't hold for you:
 ```sh
 wellposed lint request.json --config wellposed.config.json
 ```
+
+A working example ships at [`examples/wellposed.config.json`](skills/wellposed/examples/wellposed.config.json).
 
 ## The four layers
 
