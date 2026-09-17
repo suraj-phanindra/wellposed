@@ -53,7 +53,7 @@ for (const [label, items] of Object.entries(byLabel).sort()) {
   tp += c; fn += items.length - c;
   const claimed = (CATCHES[label] ?? []).length > 0;
   console.log('  ' + pad(label, 30) + lpad(items.length, 3) + lpad(`${c}/${items.length}`, 9) + '  ' +
-    (claimed ? (c === items.length ? 'fully covered' : 'partial') : 'deferred to Layer 3 (semantic)'));
+    (claimed ? (c === items.length ? 'fully covered' : 'partial') : 'deferred to the semantic layer'));
 }
 
 // False positives: clean questions that nonetheless drew a warn/error.
