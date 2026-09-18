@@ -9,7 +9,7 @@ description: >
   TypeSafe.
 metadata:
   short-description: Write and lint jev requests that mean what you think they mean.
-  version: 0.1.4
+  version: 0.2.0
   homepage: https://github.com/suraj-phanindra/wellposed
 ---
 
@@ -110,7 +110,7 @@ The two layers do different jobs, and the split is deliberate:
 
 - **Structural** (free, offline) is tuned for **recall**. It flags every Choice with no escape hatch,
   every broken state path, every documented jev weak spot. Measured 100% recall on the escape-hatch
-  class, 86% precision overall — it over-flags on purpose.
+  class, 92% precision overall — it over-flags on purpose.
 - **Semantic** (one jev call per question) supplies **precision**, and only for what structure cannot
   decide: whether "none of these" is actually reachable, whether options overlap, whether the question
   is answerable from the state at all.

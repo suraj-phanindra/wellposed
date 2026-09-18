@@ -10,7 +10,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { lintRequest, lintQuestion } from './structural.mjs';
+import { lintRequest, lintQuestion, RULES } from './structural.mjs';
 import { semanticLint, CHECKS, LOW, HIGH } from './semantic.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,11 +27,24 @@ const MARK = { error: red('error'), warn: yellow('warn '), info: blue('info ') }
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
-const flag = (n) => argv.includes(`--${n}`);
+const flag = (n) => argv.includes(`--${n}`) || argv.some((a) => a === `--${n}=true`);
 const opt = (n, d) => {
+  const eq = argv.find((a) => a.startsWith(`--${n}=`));
+  if (eq) return eq.slice(n.length + 3);
   const i = argv.indexOf(`--${n}`);
   return i >= 0 ? argv[i + 1] : d;
 };
+const KNOWN_FLAGS = ['semantic', 'config', 'json', 'quiet', 'max-warnings', 'help'];
+function rejectUnknownFlags() {
+  const bad = argv.filter((a) => a.startsWith('--'))
+    .map((a) => a.replace(/^--/, '').split('=')[0])
+    .filter((n) => !KNOWN_FLAGS.includes(n));
+  if (bad.length) {
+    console.error(red(`unknown flag${bad.length > 1 ? 's' : ''}: ${bad.map((b) => '--' + b).join(', ')}`));
+    console.error(dim(`known flags: ${KNOWN_FLAGS.map((f) => '--' + f).join(', ')}`));
+    process.exit(2);
+  }
+}
 
 function usage(code = 0) {
   console.log(`
@@ -64,7 +77,10 @@ function readInput(path) {
 function print(findings, { quiet }) {
   const shown = quiet ? findings.filter((f) => f.severity === 'error') : findings;
   if (!shown.length) {
-    console.log(`\n  ${green('OK')} no findings\n`);
+    const hidden = findings.length - shown.length;
+    console.log(hidden
+      ? `\n  ${green('OK')} no errors ${dim(`(${hidden} warning/info finding${hidden > 1 ? 's' : ''} hidden by --quiet)`)}\n`
+      : `\n  ${green('OK')} no findings\n`);
     return;
   }
   const byQ = new Map();
@@ -85,38 +101,19 @@ function print(findings, { quiet }) {
   }
 }
 
-const RULE_TABLE = [
-  ['question/missing-instructions', 'error', 'verified: live API 400'],
-  ['instructions/wrong-type', 'error', 'verified: live API 422'],
-  ['noul/criteria-not-object', 'error', 'verified: live API 422'],
-  ['question/invalid-type', 'error', 'docs: api reference'],
-  ['choice/missing-criteria', 'error', 'docs: primitives/choice'],
-  ['choice/too-many-options', 'error', 'docs: max 255 options'],
-  ['choice/duplicate-options', 'error', 'degenerate'],
-  ['score/too-few-levels', 'error', 'docs: primitives/score'],
-  ['context/over-total', 'error', 'docs: 64k state+questions'],
-  ['context/over-state-plus-question', 'error', 'docs: 32k state+longest question'],
-  ['choice/no-escape-hatch', 'warn', 'measured: wrong answer at confidence 1.00'],
-  ['noul/degree-question', 'warn', 'docs: use a Score for degree'],
-  ['choice/degenerate', 'warn', 'answer is predetermined'],
-  ['jev/counting', 'warn', 'jaggedness: jev does not count reliably'],
-  ['jev/arithmetic', 'warn', 'jaggedness: keep math in code'],
-  ['jev/date-comparison', 'warn', 'jaggedness: dates read as text'],
-  ['jev/bundled-judgments', 'warn', 'jaggedness: one judgment per question'],
-  ['jev/double-negative', 'warn', 'jaggedness: indirection costs accuracy'],
-  ['noul/unexpected-criteria-keys', 'warn', 'only true/false are meaningful'],
-  ['score/bare-levels', 'info', 'docs: levels should be concrete situations'],
-  ['request/single-question', 'info', 'docs: batching is ~12x cheaper'],
-];
 
 async function main() {
   if (!cmd || flag('help') || cmd === 'help') usage(0);
 
   if (cmd === 'rules') {
     console.log(`\n  ${bold('structural')} ${dim('- free, offline, decided from the request JSON alone')}\n`);
-    for (const [id, sev, note] of RULE_TABLE) {
-      console.log(`    ${MARK[sev]}  ${id.padEnd(38)} ${dim(note)}`);
+    const order = { error: 0, warn: 1, info: 2 };
+    const ids = Object.keys(RULES).sort((a, b) =>
+      (order[RULES[a].severity] - order[RULES[b].severity]) || a.localeCompare(b));
+    for (const id of ids) {
+      console.log(`    ${MARK[RULES[id].severity]}  ${id.padEnd(38)} ${dim(RULES[id].source)}`);
     }
+    console.log(`\n    ${dim(`${ids.length} structural rules`)}`);
     console.log(`\n  ${bold('semantic')} ${dim(`- one jev call per question; warn above ${HIGH}, uncertain ${LOW}-${HIGH}`)}\n`);
     for (const ch of CHECKS) {
       const note = ch.gatedOn ? `gated on ${ch.gatedOn}` : ch.applies.join('/');
@@ -133,6 +130,7 @@ async function main() {
   }
 
   if (cmd !== 'lint') usage(2);
+  rejectUnknownFlags();
 
   const positional = argv.slice(1).filter((a, i, arr) => {
     if (a.startsWith('--')) return false;
@@ -141,6 +139,17 @@ async function main() {
   });
   const req = readInput(positional[0]);
   const config = opt('config') ? JSON.parse(readFileSync(opt('config'), 'utf8')) : {};
+  const VALID_SEV = ['off', 'info', 'warn', 'error'];
+  for (const [rule, sev] of Object.entries(config.rules ?? {})) {
+    if (!VALID_SEV.includes(sev)) {
+      console.error(red(`config: rule "${rule}" has severity "${sev}"; must be one of ${VALID_SEV.join(', ')}`));
+      process.exit(2);
+    }
+    if (!(rule in RULES)) {
+      console.error(red(`config: unknown rule "${rule}". Run \`wellposed rules\` for the list.`));
+      process.exit(2);
+    }
+  }
 
   const structural = lintRequest(req, { rules: config.rules });
   const findings = [...structural.findings];
@@ -186,6 +195,10 @@ async function main() {
   }
 
   const maxW = opt('max-warnings');
+  if (maxW != null && !Number.isFinite(Number(maxW))) {
+    console.error(red(`--max-warnings expects a number, got "${maxW}"`));
+    process.exit(2);
+  }
   if (counts.error > 0) process.exit(1);
   if (maxW != null && counts.warn > Number(maxW)) process.exit(1);
 }

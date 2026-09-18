@@ -158,7 +158,8 @@ test('every corpus item still lints without throwing', async () => {
   const { dirname, join } = await import('node:path');
   const here = dirname(fileURLToPath(import.meta.url));
   const corpus = JSON.parse(readFileSync(join(here, 'corpus.json'), 'utf8'));
-  assert.equal(corpus.items.length, 40);
+  assert.ok(corpus.items.length >= 40, 'corpus must not shrink');
+  assert.equal(new Set(corpus.items.map((i) => i.id)).size, corpus.items.length, 'ids must be unique');
   for (const it of corpus.items) {
     assert.doesNotThrow(() => lintQuestion(String(it.id), it.question), `item ${it.id}`);
   }
@@ -209,4 +210,107 @@ test('nothing outside node: builtins is imported', async () => {
       }
     }
   }
+});
+
+// --- the rules listing must not be able to drift ---------------------------
+
+test('RULES registry exactly matches the ids the engine can emit', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const { RULES } = await import('../scripts/structural.mjs');
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'structural.mjs'), 'utf8');
+  const emitted = new Set();
+  for (const m of src.matchAll(/finding\('([a-z/-]+)',\s*'(?:error|warn|info)'/g)) emitted.add(m[1]);
+  for (const m of src.matchAll(/\[RE_\w+,\s*'([a-z/-]+)'/g)) emitted.add(m[1]);
+  const registered = new Set(Object.keys(RULES));
+  const missing = [...emitted].filter((r) => !registered.has(r));
+  const extra = [...registered].filter((r) => !emitted.has(r));
+  assert.deepEqual(missing, [], `emitted but not in RULES — \`wellposed rules\` would under-report: ${missing}`);
+  assert.deepEqual(extra, [], `in RULES but never emitted — \`wellposed rules\` would over-report: ${extra}`);
+});
+
+// --- regressions from the 2026-09-18 adversarial audit ---------------------
+// Each of these was a real false positive on ordinary business English.
+
+test('framed rules do not fire on ordinary prose that merely mentions them', () => {
+  const clean = [
+    'Does the listing mention after-hours maintenance?',
+    'Did the agent respond before anyone escalated?',
+    'Did the customer not receive the invoice?',
+    'Is the appliance not installed yet?',
+    'Did the lead say they are not interested?',
+    'Does the customer dispute the number of items delivered?',
+    'Does the review mention an average wait time?',
+    'Is the rate the tenant pays fixed?',
+    'Does the invoice mention how much tax was charged?',
+    'Does the customer ask how much the refund will be?',
+    'Does the invoice list compute charges separately?',
+  ];
+  for (const instructions of clean) {
+    const f = lintQuestion('q', { type: 'noul', instructions }).filter((x) => x.severity !== 'info');
+    assert.deepEqual(f.map((x) => x.rule), [], `false positive on: "${instructions}"`);
+  }
+});
+
+test('framed rules still catch the real thing', () => {
+  const cases = [
+    ['jev/counting', 'How many bedrooms does this listing advertise?'],
+    ['jev/arithmetic', 'Calculate the total of all charges.'],
+    ['jev/date-comparison', 'Did the payment arrive before the due date?'],
+    ['jev/date-comparison', 'Was the invoice issued within the last 30 days?'],
+    ['jev/double-negative', 'Is the tenant not unwilling to sign?'],
+    ['noul/degree-question', 'How severe is this policy violation?'],
+    ['noul/degree-question', 'On a scale of 1-10, how risky is this clause?'],
+  ];
+  for (const [rule, instructions] of cases) {
+    assert.ok(rules(lintQuestion('q', { type: 'noul', instructions })).includes(rule),
+      `missed ${rule} on: "${instructions}"`);
+  }
+});
+
+test('escape hatches are recognised in every common spelling', async () => {
+  const { normalizeOption } = await import('../scripts/structural.mjs');
+  assert.equal(normalizeOption('none_of_the_above'), 'none of the above');
+  assert.equal(normalizeOption('notStated'), 'not stated');
+  assert.equal(normalizeOption('None of the above.'), 'none of the above');
+  assert.equal(normalizeOption('other (please specify)'), 'other');
+  for (const hatch of ['none_of_the_above', 'not_stated', 'unspecified', 'notStated',
+                       'None of the above.', 'other (please specify)', 'n/a', 'not applicable']) {
+    const f = lintQuestion('q', { type: 'choice', instructions: 'Which team?',
+      criteria: { billing: null, technical: null, [hatch]: null } });
+    assert.ok(!rules(f).includes('choice/no-escape-hatch'), `"${hatch}" should count as an escape hatch`);
+  }
+});
+
+test('a backticked option name is not treated as a broken state path', () => {
+  const q = { type: 'choice',
+    instructions: 'Route this to `billing`, `technical`, or `other` if none apply.',
+    criteria: { billing: null, technical: null, other: 'Fits none of the above.' } };
+  const r = lintRequest({ model: 'jev-latest', state: { ticket: { text: 'x' } }, questions: { team: q } });
+  assert.equal(r.counts.error, 0, 'must not error on a request the live API answers at confidence 1.00');
+  assert.ok(!rules(r.findings).includes('state/broken-path'));
+});
+
+test('a genuinely broken dotted path is still an error', () => {
+  const r = lintRequest({ model: 'jev-latest', state: { ticket: {} },
+    questions: { q: { type: 'noul', instructions: 'Is `ticket.assigned_agent.name` on the team?' } } });
+  assert.ok(rules(r.findings).includes('state/broken-path'));
+  assert.equal(r.counts.error, 1);
+});
+
+// --- CI gates must fail closed ---------------------------------------------
+
+test('the CLI exits correctly on every gate path', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const cli = join(here, '..', 'scripts', 'wellposed.mjs');
+  const ex = join(here, '..', 'examples', 'support-ticket.json');
+  const run = (...a) => spawnSync(process.execPath, [cli, ...a], { encoding: 'utf8' }).status;
+  assert.equal(run('lint', ex), 1, 'a request with an error exits 1');
+  assert.equal(run('lint', ex, '--max-warnings=0'), 1, '--flag=value form must be honoured');
+  assert.equal(run('lint', ex, '--max-warnings', 'abc'), 2, 'a non-numeric threshold must not silently disable the gate');
+  assert.equal(run('lint', ex, '--maxwarnings', '0'), 2, 'an unknown flag must not be silently ignored');
 });

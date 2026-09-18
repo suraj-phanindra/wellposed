@@ -9,7 +9,8 @@
     "D4": "no-escape-hatch",
     "D5": "non-concrete-score-levels",
     "D6": "unanswerable-from-state",
-    "D7": "syntax-or-type-error"
+    "D7": "syntax-or-type-error",
+    "D4x": "documented-jev-weak-spot"
   },
   "items": [
     {
@@ -20,7 +21,8 @@
         "instructions": "Does this ticket require urgent human attention?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 2,
@@ -30,7 +32,8 @@
         "instructions": "How urgent is this ticket?"
       },
       "label": "degree-as-noul",
-      "defect_code": "D1"
+      "defect_code": "D1",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 3,
@@ -45,7 +48,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 4,
@@ -61,7 +65,8 @@
         }
       },
       "label": "overlapping-choice-options",
-      "defect_code": "D3"
+      "defect_code": "D3",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 5,
@@ -71,7 +76,8 @@
         "instructions": "Does the listing state that parking is included?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 6,
@@ -88,7 +94,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 7,
@@ -98,7 +105,8 @@
         "instructions": "Is the rent within budget and are pets allowed?"
       },
       "label": "bundled-judgments",
-      "defect_code": "D2"
+      "defect_code": "D2",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 8,
@@ -114,7 +122,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 9,
@@ -124,7 +133,8 @@
         "instructions": "Does this sentence assert the claim as an established fact, rather than hedging, speculating, or describing it as conditional or future?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 10,
@@ -139,7 +149,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 11,
@@ -155,7 +166,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 12,
@@ -165,7 +177,8 @@
         "instructions": "Does the resume show hands-on Python experience?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 13,
@@ -175,7 +188,8 @@
         "instructions": "How many years of professional experience does this candidate have?"
       },
       "label": "degree-as-noul",
-      "defect_code": "D1"
+      "defect_code": "D1",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 14,
@@ -185,7 +199,8 @@
         "instructions": "Is this comment toxic?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 15,
@@ -201,7 +216,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 16,
@@ -217,7 +233,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 17,
@@ -227,7 +244,8 @@
         "instructions": "Does this pull request touch security-sensitive or high-blast-radius code?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 18,
@@ -237,7 +255,8 @@
         "instructions": "Does this bug report contain enough detail to reproduce the problem?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 19,
@@ -253,7 +272,8 @@
         }
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 20,
@@ -263,7 +283,8 @@
         "instructions": "Does this email require a reply today?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 21,
@@ -279,7 +300,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 22,
@@ -295,7 +317,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 23,
@@ -305,7 +328,8 @@
         "instructions": "Did the rep ask about budget, timeline, and decision process?"
       },
       "label": "bundled-judgments",
-      "defect_code": "D2"
+      "defect_code": "D2",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 24,
@@ -315,7 +339,8 @@
         "instructions": "Is this invoice a duplicate of one already submitted?"
       },
       "label": "unanswerable-from-state",
-      "defect_code": "D6"
+      "defect_code": "D6",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 25,
@@ -331,7 +356,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 26,
@@ -341,7 +367,8 @@
         "instructions": "Does the cited passage support the claim made?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 27,
@@ -357,7 +384,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 28,
@@ -367,7 +395,8 @@
         "instructions": "Is every factual statement in the answer supported by the provided context?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 29,
@@ -383,7 +412,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 30,
@@ -393,7 +423,8 @@
         "instructions": "Does this log line indicate a user-facing outage?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 31,
@@ -403,7 +434,8 @@
         "instructions": "How confident should we be that the extracted rent value is correct?"
       },
       "label": "degree-as-noul",
-      "defect_code": "D1"
+      "defect_code": "D1",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 32,
@@ -413,7 +445,8 @@
         "instructions": "Does this meeting note record at least one concrete action item with an owner?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 33,
@@ -429,7 +462,8 @@
         }
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 34,
@@ -445,7 +479,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 35,
@@ -455,7 +490,8 @@
         "instructions": "Does this copy match the brand voice described in the guidelines?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 36,
@@ -465,7 +501,8 @@
         "instructions": "Will this customer cancel their subscription next month?"
       },
       "label": "unanswerable-from-state",
-      "defect_code": "D6"
+      "defect_code": "D6",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 37,
@@ -475,7 +512,8 @@
         "instructions": "Does this address contain all fields required for delivery?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 38,
@@ -489,7 +527,8 @@
         }
       },
       "label": "no-escape-hatch",
-      "defect_code": "D4"
+      "defect_code": "D4",
+      "source": "generated-2026-09-17"
     },
     {
       "id": 39,
@@ -505,7 +544,8 @@
         ]
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
     },
     {
       "id": 40,
@@ -515,7 +555,449 @@
         "instructions": "Did the customer verbally agree to the quoted price?"
       },
       "label": "well-posed",
-      "defect_code": null
+      "defect_code": null,
+      "source": "generated-2026-09-17"
+    },
+    {
+      "id": 41,
+      "intent": "mentions after-hours service",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the listing mention after-hours maintenance?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 42,
+      "intent": "temporal word, no comparison",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the agent respond before anyone escalated?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 43,
+      "intent": "negation over an 'in' word",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the customer not receive the invoice?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 44,
+      "intent": "negation over 'installed'",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the appliance not installed yet?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 45,
+      "intent": "negation over 'interested'",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the lead say they are not interested?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 46,
+      "intent": "negation over 'insured'",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the vehicle not insured under this policy?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 47,
+      "intent": "mentions a count, asks yes/no",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the customer dispute the number of items delivered?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 48,
+      "intent": "mentions an average",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the review mention an average wait time?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 49,
+      "intent": "mentions a percentage",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the contract state a percentage fee?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 50,
+      "intent": "'rate' as a noun",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the rate the tenant pays fixed?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 51,
+      "intent": "'how much' under a reporting verb",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the invoice mention how much tax was charged?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 52,
+      "intent": "'how much' under 'ask'",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the customer ask how much the refund will be?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 53,
+      "intent": "'score' as a noun",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the report include a credit score?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 54,
+      "intent": "snake_case escape hatch",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "none_of_the_above": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 55,
+      "intent": "snake_case not_stated",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "not_stated": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 56,
+      "intent": "unspecified as hatch",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "unspecified": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 57,
+      "intent": "punctuated hatch",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "None of the above.": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 58,
+      "intent": "camelCase hatch",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "notStated": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 59,
+      "intent": "parenthetical hatch",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "other (please specify)": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 60,
+      "intent": "n/a as hatch",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "n/a": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 61,
+      "intent": "backticked option names",
+      "question": {
+        "type": "choice",
+        "instructions": "Route to `billing`, `technical`, or `other` if none apply.",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "other": "Fits none of the above."
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 62,
+      "intent": "backticked answer literal",
+      "question": {
+        "type": "noul",
+        "instructions": "Answer `true` only if the tenant has already paid the deposit."
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 63,
+      "intent": "prose in backticks",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the ticket use the phrase `urgent` anywhere?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 64,
+      "intent": "divide as a noun phrase",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the memo describe a divide between the teams?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 65,
+      "intent": "'compute' as a noun",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the invoice list compute charges separately?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 66,
+      "intent": "date word, no ordering",
+      "question": {
+        "type": "noul",
+        "instructions": "Does the lease mention a renewal date?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 67,
+      "intent": "counting asked directly",
+      "question": {
+        "type": "noul",
+        "instructions": "How many bedrooms does this listing advertise?"
+      },
+      "label": "jev-counting",
+      "defect_code": "D4x",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 68,
+      "intent": "arithmetic imperative",
+      "question": {
+        "type": "noul",
+        "instructions": "Calculate the total of all charges."
+      },
+      "label": "jev-arithmetic",
+      "defect_code": "D4x",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 69,
+      "intent": "date ordering",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the payment arrive before the due date?"
+      },
+      "label": "jev-date-comparison",
+      "defect_code": "D4x",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 70,
+      "intent": "relative window",
+      "question": {
+        "type": "noul",
+        "instructions": "Was the invoice issued within the last 30 days?"
+      },
+      "label": "jev-date-comparison",
+      "defect_code": "D4x",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 71,
+      "intent": "genuine double negative",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the tenant not unwilling to sign?"
+      },
+      "label": "jev-double-negative",
+      "defect_code": "D4x",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 72,
+      "intent": "degree as noul",
+      "question": {
+        "type": "noul",
+        "instructions": "How severe is this policy violation?"
+      },
+      "label": "degree-as-noul",
+      "defect_code": "D1",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 73,
+      "intent": "scale as noul",
+      "question": {
+        "type": "noul",
+        "instructions": "On a scale of 1-10, how risky is this clause?"
+      },
+      "label": "degree-as-noul",
+      "defect_code": "D1",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 74,
+      "intent": "imperative rate",
+      "question": {
+        "type": "noul",
+        "instructions": "Rate the quality of this support interaction."
+      },
+      "label": "degree-as-noul",
+      "defect_code": "D1",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 75,
+      "intent": "no hatch at all",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "account": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4",
+      "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 76,
+      "intent": "bundled judgments",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the rent within budget and are pets allowed?"
+      },
+      "label": "bundled-judgments",
+      "defect_code": "D2",
+      "source": "adversarial-2026-09-18"
     }
   ],
   "corrections": [
@@ -525,6 +1007,13 @@
       "now": "well-posed",
       "reason": "The pre-registered rubric defines D5 as levels that are 'not monotonically ordered' or 'not mutually distinguishable situations'. weak/okay/strong/excellent are ordered and distinguishable, so they do not meet the rubric text. The original label applied the docs' style guidance ('levels must describe concrete situations') instead of the rubric. Rubric fidelity wins. The corresponding lint rule score/bare-levels was demoted warn -> info for the same reason.",
       "effect": "defect count 17 -> 16; rate 42.5% -> 40.0%. Still above the pre-registered 20% build threshold."
+    }
+  ],
+  "provenance": [
+    {
+      "batch": "adversarial-2026-09-18",
+      "n": 36,
+      "why": "An external adversarial test found six rules misfiring on ordinary business English at roughly 10-20% precision. None of those phrasings existed in the original 40-item corpus, so the reported 86% precision could not see them: it was unchanged before and after the fix. These items were added so the metric measures the failure mode that was actually found."
     }
   ]
 }

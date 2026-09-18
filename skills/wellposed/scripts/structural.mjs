@@ -33,21 +33,139 @@ export const CTX_STATE_PLUS_Q_TOKENS = 32_000;
 /** Rough token estimate. Deliberately crude — we only use it near the limit. */
 export const estimateTokens = (s) => Math.ceil(JSON.stringify(s ?? '').length / 4);
 
-const ESCAPE_HATCH = /^(other|others|none|none of the above|n\/?a|unknown|not stated|not specified|no match|neither|unclear|cannot tell|can't tell|undetermined|uncertain)$/i;
-const ESCAPE_HATCH_DESC = /\b(none of (the )?(above|these)|fits none|no(ne)? of the (other|listed)|does not fit|doesn'?t fit|not covered)\b/i;
+/**
+ * Normalise a Choice option before testing it for escape-hatch-ness.
+ * snake_case, kebab-case, camelCase, trailing punctuation and parenthetical
+ * qualifiers are all house styles in the wild — and TypeSafe's own Choice docs
+ * use snake_case keys. Matching the raw string missed every one of them.
+ */
+export const normalizeOption = (s) => String(s)
+  .replace(/\([^)]*\)/g, ' ')
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/[_\-]+/g, ' ')
+  .replace(/[^\p{L}\p{N}/' ]+/gu, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase();
 
-// jev-1.13 jaggedness §2 "Math and Numbers" — it does not count reliably.
-const RE_COUNTING = /\b(how many|number of|count (?:the|how)|tally|occurrences? of|total number)\b/i;
-// jev-1.13 jaggedness §2 — arithmetic belongs in code.
-const RE_ARITHMETIC = /\b(calculate|compute|sum of|average|mean of|percentage|divide|multiply|subtract|add up|ratio of)\b/i;
-// jev-1.13 jaggedness §3 — dates are read as text, not ordered quantities.
-const RE_DATE_COMPARE = /\b(before|after|earlier than|later than|more recent|older than|within (the )?(last|next|past)|between .{0,20}\band\b.{0,20}(date|day|week|month|year)|how long ago|days? (ago|apart|between))\b/i;
-// Docs: a Noul is yes/no. A question about degree belongs in a Score.
-const RE_DEGREE = /\b(how (much|urgent|severe|likely|well|strong|good|bad|relevant|confident|important|risky|complex)|on a scale|rate (the|this|how)|what (degree|level|extent)|to what extent|score (the|this)|how many years)\b/i;
-// jev-1.13: "Hiding several judgments inside one question."
+const ESCAPE_HATCH = /^(other|others|none|none of the (above|these)|n ?\/? ?a|not applicable|does not apply|unknown|not stated|not specified|not provided|not mentioned|not given|unspecified|no match|no other|neither|unclear|cannot tell|can ?not tell|can't tell|undetermined|uncertain|indeterminate|ambiguous|something else)$/;
+const ESCAPE_HATCH_DESC = /\b(none of (the )?(above|these|listed|options)|fits none|no(ne)? of the (other|listed)|does not fit|doesn'?t fit|not covered|anything else|any other)\b/i;
+
+// --- jev-1.13 documented weak spots -----------------------------------------
+// Every regex below is deliberately FRAMED: it fires when the question asks jev
+// to DO the thing, not when the question merely mentions it. An earlier version
+// matched bare keywords and flagged ordinary business English at a measured
+// ~10-20% precision ("did not receive the invoice" tripped the double-negative
+// rule on the letters "in" in "invoice").
+
+// §2 "Math and Numbers" — jev does not count reliably.
+const RE_COUNTING = /\b(how many|total number of|count (?:the|how many|each|all)|tally (?:the|up)|occurrences? of|number of times)\b/i;
+
+// §2 — arithmetic belongs in code. Imperative or interrogative frames only;
+// bare "average"/"percentage"/"ratio" are ordinary nouns.
+const RE_ARITHMETIC = /\b(calculate|compute (?:the|a|an|how|total)|add up|sum (?:up )?the|work out the|what is the (?:total|sum|average|percentage|ratio)|divide the|multiply the|subtract the)\b/i;
+
+// §3 — dates are read as text, not ordered quantities. "before"/"after" are
+// ordinary prepositions ("after-hours maintenance"), so they need a date nearby.
+const DATE_NOUN = '(?:date|dates|day|days|week|weeks|month|months|year|years|deadline|due|expiry|expiration|renewal|anniversary|timestamp|\\d{4}|\\d{1,2}[/-]\\d{1,2})';
+const RE_DATE_COMPARE = new RegExp(
+  '\\b(?:' +
+    `(?:before|after|earlier than|later than|more recent than|older than|prior to)\\s+(?:\\w+\\s+){0,3}${DATE_NOUN}` +
+    `|${DATE_NOUN}\\s+(?:\\w+\\s+){0,3}(?:before|after|earlier than|later than)` +
+    `|within (?:the )?(?:last|next|past)\\s+(?:\\w+\\s+){0,2}${DATE_NOUN}` +
+    '|how long ago' +
+    '|days? (?:ago|apart|between)' +
+    `|between\\s+.{0,25}\\band\\b.{0,25}${DATE_NOUN}` +
+  ')\\b', 'i');
+
+// "Hiding several judgments inside one question."
 const RE_BUNDLED = /\b(\w+)\s+and\s+(?:also\s+)?(?:is|are|does|do|did|has|have|was|were|can|should|will)\b|,\s*and\s+(?:is|are|does|do|did|has|have|whether)\b/i;
-// jev-1.13 §4 Indirection — double negatives cost accuracy.
-const RE_DOUBLE_NEG = /\bnot\b[^.?!]{0,40}\b(un|in|non|dis)\w+|\bnever\b[^.?!]{0,40}\bnot\b|\bnot\b[^.?!]{0,40}\bwithout\b/i;
+
+// §4 Indirection — double negatives cost accuracy. The prefix must actually
+// negate: matching /(un|in|non|dis)\w+/ keys on spelling, so "invoice",
+// "installed", "interested" and "insured" all counted as negations.
+const NEGATING = [
+  'un(?:able|available|likely|clear|willing|acceptable|resolved|paid|signed|verified',
+  '|confirmed|answered|reasonable|satisfied|approved|documented|finished|changed)',
+  '|in(?:complete|valid|eligible|active|accurate|sufficient|correct|consistent',
+  '|applicable|admissible|conclusive|frequent)',
+  '|non-?(?:compliant|refundable|negotiable|responsive|binding|standard|existent|disclosure)',
+  '|dis(?:satisfied|approved|allowed|qualified|continued|puted|honest)',
+].join('');
+const RE_DOUBLE_NEG = new RegExp(
+  `\\bnot\\b[^.?!]{0,40}\\b(?:${NEGATING})\\b` +
+  '|\\bnever\\b[^.?!]{0,40}\\bnot\\b' +
+  '|\\bnot\\b[^.?!]{0,40}\\bwithout\\b' +
+  '|\\bno\\b[^.?!]{0,25}\\bnot\\b', 'i');
+
+// Docs: a Noul is yes/no; degree belongs in a Score. But "rate" and "score" are
+// also nouns, and "how much" is routinely embedded under a reporting verb
+// ("Does the invoice state how much tax was charged?") where the question as a
+// whole is a perfectly good yes/no.
+const RE_DEGREE_CORE = /\b(how (urgent|severe|likely|well|strong|good|bad|relevant|confident|important|risky|complex|serious|difficult)|on a scale(?: of| from)?|to what extent|what (degree|level|extent) of)\b/i;
+const RE_DEGREE_QUANT = /\bhow (much|many years)\b/i;
+const RE_DEGREE_IMPERATIVE = /(?:^|[.;]\s*|please\s+)(rate|score|grade)\s+(the|this|how|each)\b/i;
+const MATRIX_VERB = /\b(mention|state|say|said|ask|tell|told|report|include|indicate|specify|dispute|claim|note|record|show|list|describ)\w*\b/i;
+
+/** Degree detection with context, returning the matched phrase or null. */
+export function degreeMatch(text) {
+  const core = text.match(RE_DEGREE_CORE);
+  if (core) return core[0];
+  const imp = text.match(RE_DEGREE_IMPERATIVE);
+  if (imp) return imp[0].trim();
+  const quant = text.match(RE_DEGREE_QUANT);
+  if (quant) {
+    // Suppress when a reporting verb governs it: the judgment is whether the
+    // text SAYS how much, which is a genuine yes/no.
+    const before = text.slice(0, quant.index);
+    if (!MATRIX_VERB.test(before)) return quant[0];
+  }
+  return null;
+}
+
+
+/**
+ * Every rule the engine can emit, with its severity and where it comes from.
+ * This is the single source of truth: `wellposed rules` renders it, and a test
+ * asserts it matches the ids actually emitted, so the listing cannot drift.
+ */
+export const RULES = {
+  'choice/criteria-wrong-type': { severity: 'error', source: 'docs: primitives/choice' },
+  'choice/duplicate-options': { severity: 'error', source: 'degenerate' },
+  'choice/missing-criteria': { severity: 'error', source: 'docs: primitives/choice' },
+  'choice/too-many-options': { severity: 'error', source: 'docs: max 255 options' },
+  'context/over-state-plus-question': { severity: 'error', source: 'docs: 32k state+longest question' },
+  'context/over-total': { severity: 'error', source: 'docs: 64k state+questions' },
+  'instructions/wrong-type': { severity: 'error', source: 'verified: live API 422' },
+  'noul/criteria-not-object': { severity: 'error', source: 'verified: live API 422' },
+  'question/invalid-type': { severity: 'error', source: 'docs: api reference' },
+  'question/missing-instructions': { severity: 'error', source: 'verified: live API 400' },
+  'question/missing-type': { severity: 'error', source: 'docs: api reference' },
+  'question/not-an-object': { severity: 'error', source: 'malformed input' },
+  'request/missing-model': { severity: 'error', source: 'docs: models' },
+  'request/missing-state': { severity: 'error', source: 'docs: concepts/state' },
+  'request/no-questions': { severity: 'error', source: 'docs: api reference' },
+  'request/not-an-object': { severity: 'error', source: 'malformed input' },
+  'score/criteria-wrong-type': { severity: 'error', source: 'docs: primitives/score' },
+  'score/missing-criteria': { severity: 'error', source: 'docs: primitives/score' },
+  'score/too-few-levels': { severity: 'error', source: 'docs: primitives/score' },
+  'state/broken-path': { severity: 'error', source: 'deterministic: path does not resolve' },
+  'choice/degenerate': { severity: 'warn', source: 'answer is predetermined' },
+  'choice/no-escape-hatch': { severity: 'warn', source: 'measured: wrong answer at confidence 1.00' },
+  'context/near-total': { severity: 'warn', source: 'docs: 64k state+questions' },
+  'jev/arithmetic': { severity: 'warn', source: 'jaggedness: keep math in code' },
+  'jev/bundled-judgments': { severity: 'warn', source: 'jaggedness: one judgment per question' },
+  'jev/counting': { severity: 'warn', source: 'jaggedness: jev does not count reliably' },
+  'jev/date-comparison': { severity: 'warn', source: 'jaggedness: dates read as text' },
+  'jev/double-negative': { severity: 'warn', source: 'jaggedness: indirection costs accuracy' },
+  'noul/degree-question': { severity: 'warn', source: 'docs: use a Score for degree' },
+  'noul/unexpected-criteria-keys': { severity: 'warn', source: 'only true/false are meaningful' },
+  'request/single-question': { severity: 'info', source: 'docs: batching is ~12x cheaper' },
+  'score/bare-levels': { severity: 'info', source: 'docs: levels should be concrete situations' },
+  'state/flat-string': { severity: 'info', source: 'docs: prefer named fields' },
+  'state/unreferenced-fields': { severity: 'info', source: 'jaggedness: context rot' },
+  'state/unresolved-reference': { severity: 'info', source: 'bare backtick, not a path' },
+};
 
 /** Flatten instructions (string | object | array) into searchable text. */
 export function textOf(v) {
@@ -126,9 +244,10 @@ export function lintQuestion(id, q, opts = {}) {
           `Noul "${id}" has criteria keys ${JSON.stringify(bad)}; only "true" and "false" are meaningful.`, at));
       }
     }
-    if (RE_DEGREE.test(text)) {
+    const degree = degreeMatch(text);
+    if (degree) {
       out.push(finding('noul/degree-question', 'warn',
-        `Noul "${id}" asks about degree ("${firstMatch(RE_DEGREE, text)}"), but a Noul returns only P(yes).`, {
+        `Noul "${id}" asks about degree ("${degree}"), but a Noul returns only P(yes).`, {
           ...at,
           fix: 'Use a Score with ordered, concrete levels, or restate as a sharp yes/no condition.',
           doc: 'https://docs.typesafe.ai/primitives/score',
@@ -166,7 +285,7 @@ export function lintQuestion(id, q, opts = {}) {
       // The headline rule. Measured: 0 of 11 generated Choices had one, and a
       // Choice without one answered a not-covered input at confidence 1.00.
       const descs = Array.isArray(q.criteria) ? [] : Object.values(q.criteria).map(textOf);
-      const hasHatch = opts.some((o) => ESCAPE_HATCH.test(String(o).trim()))
+      const hasHatch = opts.some((o) => ESCAPE_HATCH.test(normalizeOption(o)))
         || descs.some((d) => ESCAPE_HATCH_DESC.test(d));
       if (!hasHatch && opts.length >= 2) {
         out.push(finding('choice/no-escape-hatch', 'warn',
@@ -304,14 +423,37 @@ export function lintState(state, questions) {
     return out;
   }
 
-  // -- broken path references: fully deterministic -------------------------
+  // -- broken path references ---------------------------------------------
+  // A DOTTED path (`ticket.subject`) is unambiguously a state reference, so a
+  // miss is an error. A BARE backticked word is not: TypeSafe's own docs
+  // backtick option names ("add an `other` option"), and a Choice routinely
+  // names its own options in the instructions. Treating those as paths made the
+  // linter fail correct requests at error severity, so bare tokens are only
+  // reported when they are not the question's own vocabulary, and only as info.
   for (const [id, q] of Object.entries(questions)) {
     const seen = new Set();
+    const ownVocab = new Set(['true', 'false', 'null', 'yes', 'no']);
+    if (q?.criteria && typeof q.criteria === 'object') {
+      for (const k of Object.keys(q.criteria)) ownVocab.add(normalizeOption(k));
+      for (const v of Object.values(q.criteria)) {
+        if (typeof v === 'string') ownVocab.add(normalizeOption(v));
+      }
+    }
     for (const path of extractPaths(textOf(q?.instructions) + ' ' + textOf(q?.criteria))) {
       if (seen.has(path)) continue;
       seen.add(path);
+      const bare = !/[.[]/.test(path);
+      if (bare && ownVocab.has(normalizeOption(path))) continue; // it is an option name
       const { found, at } = resolvePath(state, path);
-      if (!found) {
+      if (found) continue;
+      if (bare) {
+        out.push(finding('state/unresolved-reference', 'info',
+          `Question "${id}" backticks \`${path}\`, which is neither a state field nor one of its own options. If it was meant as a state reference it will not resolve.`, {
+            questionId: id,
+            fix: `Add ${path} to state, or drop the backticks if it is prose.`,
+            doc: 'https://docs.typesafe.ai/concepts/state',
+          }));
+      } else {
         out.push(finding('state/broken-path', 'error',
           `Question "${id}" references \`${path}\`, but state has nothing at "${at}".`, {
             questionId: id,

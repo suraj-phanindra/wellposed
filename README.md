@@ -105,7 +105,7 @@ to classify these tickets," the agent already knows:
 
 ### 2. A linter that reads your request and finds problems — free, instantly, offline
 
-No API key, no network, no waiting. It reads the JSON and checks about 21 rules.
+No API key, no network, no waiting. It reads the JSON and checks 35 rules.
 
 **Things that are definitely broken** (these fail the check):
 
@@ -159,7 +159,7 @@ first; expensive-and-accurate resolves the leftovers.
 
 ### 4. A test set that proves the linter works
 
-This is the part most tools skip. wellposed ships the 40 questions we measured, hand-labelled, plus the
+This is the part most tools skip. wellposed ships the 76 questions, hand-labelled, plus the
 grading rubric written **before** anything was generated, so the goalposts couldn't move afterward.
 
 Run `wellposed eval` and it scores itself:
@@ -167,20 +167,23 @@ Run `wellposed eval` and it scores itself:
 ```
   hand label                      n   caught
   ----------------------------------------------
-  no-escape-hatch                 8      8/8   fully covered
-  degree-as-noul                  3      3/3   fully covered
-  bundled-judgments               2      1/2   partial
+  no-escape-hatch                 9      9/9   fully covered
+  degree-as-noul                  6      6/6   fully covered
+  jev-date-comparison             2      2/2   fully covered
+  jev-counting / arithmetic       2      2/2   fully covered
+  jev-double-negative             1      1/1   fully covered
+  bundled-judgments               3      2/3   partial
   overlapping-choice-options      1      0/1   deferred to the semantic layer
   unanswerable-from-state         2      0/2   deferred to the semantic layer
 
-  recall    12/16 = 75%      precision  12/14 = 86%
+  recall    22/26 = 85%      precision  22/24 = 92%
 ```
 
-In plain terms: **it catches 75% of the known problems, and 86% of what it flags is genuinely a
+In plain terms: **it catches 85% of the known problems, and 92% of what it flags is genuinely a
 problem.** Those numbers are computed live, not typed into this README. If a future change makes the
 linter worse, the number drops and you see it.
 
-Plus 21 unit tests. Three exist specifically because we sent those exact broken requests to the real
+Plus 30 unit tests. Three exist specifically because we sent those exact broken requests to the real
 API and recorded what it said.
 
 ## Install
@@ -264,6 +267,13 @@ A working example ships at
 - **The corpus was generated and labelled by one model.** Self-grading biases the defect rate
   *downward*, so 40% is a floor, not a point estimate. The live behavioural probes exist precisely
   because they don't depend on that judgment.
+- **The first version of these rules was much worse than its own metric said.** An adversarial audit
+  on 2026-09-18 found six rules firing on ordinary business English — "did not receive the **invoice**"
+  tripped the double-negative rule on the letters in "invoice", and a backticked option name was
+  reported as a broken state path at `error` severity, failing requests the API answers at confidence
+  1.00. None of those phrasings were in the 40-item corpus, so the reported precision was **unchanged
+  before and after the fix**: the metric could not see them. The corpus now carries 36 adversarial
+  items (`source: adversarial-2026-09-18` in `corpus.json`) specifically so it can.
 - **The semantic layer ranks; it does not cleanly separate.** Clear defects scored 0.94–0.96, contested
   ones 0.60–0.74. Trust the high end, review the middle. Thresholds are tunable for a reason.
 - **`choice/no-escape-hatch` over-flags by design.** Whether "none of these" is reachable is a question
@@ -285,7 +295,7 @@ docs and the one most often skipped.
 ## Development
 
 ```sh
-npm test                 # 21 unit tests, zero dependencies
+npm test                 # 30 unit tests, zero dependencies
 npm run eval             # score the linter against the corpus
 npm run lint:example     # lint the bundled example
 ```

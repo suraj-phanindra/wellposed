@@ -21,6 +21,10 @@ const CATCHES = {
   'degree-as-noul': ['noul/degree-question'],
   'bundled-judgments': ['jev/bundled-judgments'],
   'non-concrete-score-levels': ['score/bare-levels'],
+  'jev-counting': ['jev/counting'],
+  'jev-arithmetic': ['jev/arithmetic'],
+  'jev-date-comparison': ['jev/date-comparison'],
+  'jev-double-negative': ['jev/double-negative'],
   // Deliberately NOT claimed by structural rules — these need Layer 3.
   'overlapping-choice-options': [],
   'unanswerable-from-state': [],
