@@ -25,13 +25,39 @@ export const PRIMITIVES = ['noul', 'choice', 'score'];
 // Docs: "A Choice question accepts up to 255 options."
 export const MAX_CHOICE_OPTIONS = 255;
 
+// Verified live: 12 levels -> 400 "Too many score levels. Must have at most 10 levels."
+export const MAX_SCORE_LEVELS = 10;
+
 // Docs (jev-1.13 jaggedness): 64k tokens for all state + questions together;
 // 32k for state + the longest single question.
 export const CTX_TOTAL_TOKENS = 64_000;
 export const CTX_STATE_PLUS_Q_TOKENS = 32_000;
 
-/** Rough token estimate. Deliberately crude — we only use it near the limit. */
-export const estimateTokens = (s) => Math.ceil(JSON.stringify(s ?? '').length / 4);
+/**
+ * Token estimate, calibrated 2026-09-21 against the API's own reported
+ * `usage.input_tokens` with the fixed request overhead subtracted:
+ *
+ *   plain prose      5.83 chars/token   (n=2, 2.1k and 6.3k chars)
+ *   structured JSON  2.12 chars/token   (n=3, flat and nested records)
+ *
+ * The single 4.0 divisor this replaced over-counted prose by ~46% and
+ * UNDER-counted structured state by ~1.9x, which is the dangerous direction
+ * for a limit check: a request the linter called safe could be rejected.
+ * The ratios below are rounded toward over-estimating for that reason, and
+ * are exported so they can be re-fitted when the tokenizer changes.
+ */
+export const CHARS_PER_TOKEN_TEXT = 5.5;
+export const CHARS_PER_TOKEN_JSON = 2.0;
+/** Fixed per-request framing cost, measured with an empty state. */
+export const REQUEST_OVERHEAD_TOKENS = 270;
+
+export function estimateTokens(v, ratios = {}) {
+  if (v == null) return 0;
+  const text = ratios.text ?? CHARS_PER_TOKEN_TEXT;
+  const json = ratios.json ?? CHARS_PER_TOKEN_JSON;
+  if (typeof v === 'string') return Math.ceil(v.length / text);
+  return Math.ceil(JSON.stringify(v).length / json);
+}
 
 /**
  * Normalise a Choice option before testing it for escape-hatch-ness.
@@ -80,6 +106,9 @@ const RE_DATE_COMPARE = new RegExp(
 
 // "Hiding several judgments inside one question."
 const RE_BUNDLED = /\b(\w+)\s+and\s+(?:also\s+)?(?:is|are|does|do|did|has|have|was|were|can|should|will)\b|,\s*and\s+(?:is|are|does|do|did|has|have|whether)\b/i;
+// "Consider the subject, the body, and whether X" enumerates evidence for ONE
+// judgment; so does quoted text. Both tripped the bundling heuristic.
+const RE_BUNDLED_EXEMPT = /\b(consider|taking into account|based on|weigh(?:ing)?|using)\b[^.?!]{0,80},\s*and\b|["“][^"”]{0,160}["”]/i;
 
 // §4 Indirection — double negatives cost accuracy. The prefix must actually
 // negate: matching /(un|in|non|dis)\w+/ keys on spelling, so "invoice",
@@ -132,12 +161,14 @@ export function degreeMatch(text) {
 export const RULES = {
   'choice/criteria-wrong-type': { severity: 'error', source: 'docs: primitives/choice' },
   'choice/duplicate-options': { severity: 'error', source: 'degenerate' },
+  'choice/empty-option': { severity: 'error', source: 'verified: jev returns an empty choice' },
   'choice/missing-criteria': { severity: 'error', source: 'docs: primitives/choice' },
   'choice/too-many-options': { severity: 'error', source: 'docs: max 255 options' },
   'context/over-state-plus-question': { severity: 'error', source: 'docs: 32k state+longest question' },
   'context/over-total': { severity: 'error', source: 'docs: 64k state+questions' },
   'instructions/wrong-type': { severity: 'error', source: 'verified: live API 422' },
   'noul/criteria-not-object': { severity: 'error', source: 'verified: live API 422' },
+  'question/empty-key': { severity: 'error', source: 'verified: live API 400' },
   'question/invalid-type': { severity: 'error', source: 'docs: api reference' },
   'question/missing-instructions': { severity: 'error', source: 'verified: live API 400' },
   'question/missing-type': { severity: 'error', source: 'docs: api reference' },
@@ -147,9 +178,12 @@ export const RULES = {
   'request/no-questions': { severity: 'error', source: 'docs: api reference' },
   'request/not-an-object': { severity: 'error', source: 'malformed input' },
   'score/criteria-wrong-type': { severity: 'error', source: 'docs: primitives/score' },
+  'score/duplicate-levels': { severity: 'error', source: 'splits probability across identical rungs' },
   'score/missing-criteria': { severity: 'error', source: 'docs: primitives/score' },
   'score/too-few-levels': { severity: 'error', source: 'docs: primitives/score' },
+  'score/too-many-levels': { severity: 'error', source: 'verified: live API 400 (max 10)' },
   'state/broken-path': { severity: 'error', source: 'deterministic: path does not resolve' },
+  'state/wrong-type': { severity: 'error', source: 'verified: live API 422' },
   'choice/degenerate': { severity: 'warn', source: 'answer is predetermined' },
   'choice/no-escape-hatch': { severity: 'warn', source: 'measured: wrong answer at confidence 1.00' },
   'context/near-total': { severity: 'warn', source: 'docs: 64k state+questions' },
@@ -168,11 +202,17 @@ export const RULES = {
 };
 
 /** Flatten instructions (string | object | array) into searchable text. */
-export function textOf(v) {
+export function textOf(v, depth = 0, seen = new WeakSet()) {
   if (v == null) return '';
   if (typeof v === 'string') return v;
-  if (Array.isArray(v)) return v.map(textOf).join(' ');
-  if (typeof v === 'object') return Object.entries(v).map(([k, x]) => `${k} ${textOf(x)}`).join(' ');
+  if (depth > 12) return '';
+  if (typeof v === 'object') {
+    if (seen.has(v)) return '';
+    seen.add(v);
+    return Array.isArray(v)
+      ? v.map((x) => textOf(x, depth + 1, seen)).join(' ')
+      : Object.entries(v).map(([k, x]) => `${k} ${textOf(x, depth + 1, seen)}`).join(' ');
+  }
   return String(v);
 }
 
@@ -208,7 +248,8 @@ export function lintQuestion(id, q, opts = {}) {
 
   // ---- instructions -----------------------------------------------------
   const hasInstr = q.instructions != null && textOf(q.instructions).trim() !== '';
-  const hasCriteria = q.criteria != null;
+  const hasCriteria = q.criteria != null
+    && (typeof q.criteria !== 'object' || Object.keys(q.criteria).length > 0);
 
   // [verified] live API 400: "Noul question must have criteria or instructions"
   if (!hasInstr && !hasCriteria) {
@@ -260,11 +301,19 @@ export function lintQuestion(id, q, opts = {}) {
       out.push(finding('choice/missing-criteria', 'error', `Choice "${id}" has no criteria (options).`, {
         ...at, doc: 'https://docs.typesafe.ai/primitives/choice',
       }));
-    } else if (!isPlainObject(q.criteria) && !Array.isArray(q.criteria)) {
+    } else if (!isPlainObject(q.criteria)) {
+      // [verified] live API 422 dict_type on an array. Choice takes a MAP.
       out.push(finding('choice/criteria-wrong-type', 'error',
-        `Choice "${id}" criteria must be an object mapping option -> description (or an array of option names).`, at));
+        `Choice "${id}" criteria must be an object mapping option -> description, e.g. {"billing": "...", "other": "Fits none of the above."}. An array is rejected by the API.`, {
+          ...at, doc: 'https://docs.typesafe.ai/primitives/choice',
+        }));
     } else {
-      const opts = Array.isArray(q.criteria) ? q.criteria.map(String) : Object.keys(q.criteria);
+      const opts = Object.keys(q.criteria);
+      const blank = opts.filter((o) => String(o).trim() === '');
+      if (blank.length) {
+        out.push(finding('choice/empty-option', 'error',
+          `Choice "${id}" has ${blank.length} empty or whitespace-only option name(s). jev can return them, and an empty string is falsy in your code.`, at));
+      }
 
       if (opts.length > MAX_CHOICE_OPTIONS) {
         out.push(finding('choice/too-many-options', 'error',
@@ -276,7 +325,8 @@ export function lintQuestion(id, q, opts = {}) {
         out.push(finding('choice/degenerate', 'warn',
           `Choice "${id}" has ${opts.length} option(s); the answer is predetermined.`, at));
       }
-      const dupes = opts.filter((o, i) => opts.findIndex((p) => p.toLowerCase() === o.toLowerCase()) !== i);
+      const norm = opts.map((o) => String(o).trim().toLowerCase());
+      const dupes = opts.filter((o, i) => norm.indexOf(norm[i]) !== i);
       if (dupes.length) {
         out.push(finding('choice/duplicate-options', 'error',
           `Choice "${id}" has duplicate options: ${JSON.stringify([...new Set(dupes)])}.`, at));
@@ -304,13 +354,27 @@ export function lintQuestion(id, q, opts = {}) {
         ...at, doc: 'https://docs.typesafe.ai/primitives/score',
       }));
     } else {
-      const levels = Array.isArray(q.criteria) ? q.criteria.map(textOf)
-        : isPlainObject(q.criteria) ? Object.values(q.criteria).map(textOf)
-        : null;
+      // [verified] live API 422 list_type on an object. Score takes an ARRAY,
+      // because the order of the levels is the dimension being scored.
+      const levels = Array.isArray(q.criteria) ? q.criteria.map((x) => textOf(x)) : null;
       if (levels == null) {
         out.push(finding('score/criteria-wrong-type', 'error',
-          `Score "${id}" criteria must be an ordered array of levels (or an object of them).`, at));
+          `Score "${id}" criteria must be an ordered array of levels, e.g. ["can wait weeks", "needs attention today"]. An object is rejected by the API.`, {
+            ...at, doc: 'https://docs.typesafe.ai/primitives/score',
+          }));
       } else {
+        if (levels.length > MAX_SCORE_LEVELS) {
+          out.push(finding('score/too-many-levels', 'error',
+            `Score "${id}" has ${levels.length} levels; the maximum is ${MAX_SCORE_LEVELS}.`, {
+              ...at, doc: 'https://docs.typesafe.ai/primitives/score',
+            }));
+        }
+        const ln = levels.map((l) => l.trim().toLowerCase());
+        const dupL = levels.filter((l, i) => ln.indexOf(ln[i]) !== i);
+        if (dupL.length) {
+          out.push(finding('score/duplicate-levels', 'error',
+            `Score "${id}" has duplicate levels: ${JSON.stringify([...new Set(dupL)])}. Probability splits across identical rungs, which lowers confidence for no reason.`, at));
+        }
         if (levels.length < 2) {
           out.push(finding('score/too-few-levels', 'error',
             `Score "${id}" has ${levels.length} level(s); a Score needs at least 2 ordered levels.`, at));
@@ -338,6 +402,7 @@ export function lintQuestion(id, q, opts = {}) {
     [RE_BUNDLED, 'jev/bundled-judgments', 'appears to bundle several judgments into one question', 'Split into separate questions and combine them in code — they run in parallel at no extra round trip.'],
     [RE_DOUBLE_NEG, 'jev/double-negative', 'contains a double negative or indirection', 'Rewrite as a direct positive condition.'],
   ]) {
+    if (rule === 'jev/bundled-judgments' && RE_BUNDLED_EXEMPT.test(text)) continue;
     if (re.test(text)) {
       // For phrase-triggered rules the matched words are the useful evidence;
       // for structural patterns they read as nonsense, so show the instruction.
@@ -383,14 +448,19 @@ export function extractPaths(text) {
 
 /** Walk a dotted/bracketed path. Returns {found:boolean, at:string} */
 export function resolvePath(root, path) {
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  // A state key may legitimately contain a dot, so try the whole path as a
+  // literal key before splitting it.
+  if (root != null && typeof root === 'object' && has(root, path)) return { found: true, at: path };
   const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
   let cur = root;
   const walked = [];
   for (const part of parts) {
     walked.push(part);
     if (cur == null || typeof cur !== 'object') return { found: false, at: walked.join('.') };
-    const key = Array.isArray(cur) ? Number(part) : part;
-    if (!(key in cur)) return { found: false, at: walked.join('.') };
+    const key = Array.isArray(cur) ? String(Number(part)) : part;
+    // `in` walks the prototype chain, so `constructor` and `toString` resolved.
+    if (!has(cur, key)) return { found: false, at: walked.join('.') };
     cur = cur[key];
   }
   return { found: true, at: path };
@@ -495,10 +565,18 @@ export function lintRequest(req, opts = {}) {
   if (!isPlainObject(req)) {
     return summarize([finding('request/not-an-object', 'error', 'Request must be a JSON object.')]);
   }
-  if (req.state === undefined) {
-    out.push(finding('request/missing-state', 'error', 'Request has no "state".', {
-      doc: 'https://docs.typesafe.ai/concepts/state',
-    }));
+  if (req.state == null) {
+    // [verified] live API 422 "Field required" for null as well as absent.
+    out.push(finding('request/missing-state', 'error',
+      `Request has ${req.state === null ? 'a null' : 'no'} "state".`, {
+        doc: 'https://docs.typesafe.ai/concepts/state',
+      }));
+  } else if (typeof req.state !== 'string' && typeof req.state !== 'object') {
+    // [verified] live API 422 string_type on a bare number/boolean.
+    out.push(finding('state/wrong-type', 'error',
+      `State is a ${typeof req.state}; it must be a string, object, or array of text.`, {
+        doc: 'https://docs.typesafe.ai/concepts/state',
+      }));
   }
   if (!req.model) {
     out.push(finding('request/missing-model', 'error', 'Request has no "model" (e.g. "jev-latest").', {
@@ -511,19 +589,23 @@ export function lintRequest(req, opts = {}) {
   }
 
   const entries = Object.entries(req.questions);
+  if (entries.some(([id]) => id === '')) {
+    // [verified] live API 400 "Question key cannot be empty."
+    out.push(finding('question/empty-key', 'error', 'A question key is the empty string; the API rejects it.'));
+  }
   for (const [id, q] of entries) out.push(...lintQuestion(id, q, opts));
   out.push(...lintState(req.state, req.questions));
 
   // ---- context budget ---------------------------------------------------
   const stateTok = estimateTokens(req.state);
   const qToks = entries.map(([, q]) => estimateTokens(q));
-  const totalTok = stateTok + qToks.reduce((a, b) => a + b, 0);
+  const totalTok = REQUEST_OVERHEAD_TOKENS + stateTok + qToks.reduce((a, b) => a + b, 0);
   const longestQ = qToks.length ? Math.max(...qToks) : 0;
 
   if (totalTok > CTX_TOTAL_TOKENS) {
     out.push(finding('context/over-total', 'error',
       `Estimated ${totalTok.toLocaleString()} tokens of state + questions exceeds the ${CTX_TOTAL_TOKENS.toLocaleString()} limit.`, {
-        doc: 'https://docs.typesafe.ai/model-jaggedness/jev-1.13',
+        doc: 'https://docs.typesafe.ai/models',
       }));
   } else if (totalTok > CTX_TOTAL_TOKENS * 0.9) {
     out.push(finding('context/near-total', 'warn',
@@ -532,7 +614,7 @@ export function lintRequest(req, opts = {}) {
   if (stateTok + longestQ > CTX_STATE_PLUS_Q_TOKENS) {
     out.push(finding('context/over-state-plus-question', 'error',
       `Estimated state + longest question is ${(stateTok + longestQ).toLocaleString()} tokens, over the ${CTX_STATE_PLUS_Q_TOKENS.toLocaleString()} limit.`, {
-        doc: 'https://docs.typesafe.ai/model-jaggedness/jev-1.13',
+        doc: 'https://docs.typesafe.ai/models',
       }));
   }
 

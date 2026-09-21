@@ -100,12 +100,14 @@ to classify these tickets," the agent already knows:
   questions in one round trip.
 - **Don't ask jev to do math.** It can't count reliably, can't compare dates, can't add. Extract the
   values with it, then do the arithmetic in your own code.
-- **Batch everything.** jev reads your data once and answers all questions at the same time. One
-  request with ten questions is documented as ~12x cheaper and ~10x faster than ten requests.
+- **Batch everything.** jev reads your data once and answers all questions at the same time.
+  TypeSafe's published measurement batches 13 questions into one call for ~12x cheaper and ~10x
+  faster than 13 separate calls; the saving scales with question count, so expect less from a
+  handful.
 
 ### 2. A linter that reads your request and finds problems — free, instantly, offline
 
-No API key, no network, no waiting. It reads the JSON and checks 35 rules.
+No API key, no network, no waiting. It reads the JSON and checks 40 rules.
 
 **Things that are definitely broken** (these fail the check):
 
@@ -180,10 +182,12 @@ Run `wellposed eval` and it scores itself:
 ```
 
 In plain terms: **it catches 85% of the known problems, and 92% of what it flags is genuinely a
-problem.** Those numbers are computed live, not typed into this README. If a future change makes the
-linter worse, the number drops and you see it.
+problem.** Those two figures are exactly what `wellposed eval` prints; the table above them is an
+abridged view, since the real output also counts the clean questions and names its own false
+positives. Run the command for the full version. If a future change makes the linter worse, the
+numbers drop and you see it.
 
-Plus 30 unit tests. Three exist specifically because we sent those exact broken requests to the real
+Plus 35 unit tests. Three exist specifically because we sent those exact broken requests to the real
 API and recorded what it said.
 
 ## Install
@@ -295,7 +299,7 @@ docs and the one most often skipped.
 ## Development
 
 ```sh
-npm test                 # 30 unit tests, zero dependencies
+npm test                 # 35 unit tests, zero dependencies
 npm run eval             # score the linter against the corpus
 npm run lint:example     # lint the bundled example
 ```

@@ -9,7 +9,7 @@ description: >
   TypeSafe.
 metadata:
   short-description: Write and lint jev requests that mean what you think they mean.
-  version: 0.2.0
+  version: 0.3.0
   homepage: https://github.com/suraj-phanindra/wellposed
 ---
 
@@ -55,6 +55,18 @@ Send only what the question needs. Accuracy falls as state grows with unrelated 
 jaggedness notes call this out, and unreferenced state fields are the cheapest signal for it.
 
 ### 2. Pick the primitive by what the answer means
+
+A request has exactly three top-level fields: `state`, `model` (`"jev-latest"`), and `questions` — a
+map from ids you choose to question objects. A complete worked request ships next to this file at
+`examples/support-ticket.json`.
+
+The three primitives take **different criteria shapes**, and the API rejects the wrong one outright:
+
+| Primitive | `criteria` shape | Wrong shape gives |
+|---|---|---|
+| **Noul** | `{"true": "...", "false": "..."}`, optional | 422 on an array |
+| **Choice** | `{"option": "description", ...}` — a map | 422 `dict_type` on an array |
+| **Score** | `["lowest", ..., "highest"]` — an ordered array, 2–10 levels | 422 `list_type` on an object |
 
 | The answer is | Use | Watch for |
 |---|---|---|
@@ -130,7 +142,9 @@ Read answers from the flat `answers` map, keyed by the question ids you chose �
 common to both SDKs. Question ids are for your code; they are never sent to the model, so put the full
 meaning in the instructions.
 
-Only Choice and Score carry `confidence` and `probabilities`. Noul carries `noul` and nothing else.
+Only Choice and Score carry `confidence` and `probabilities`; Score also returns a `legend` mapping
+level indices back to your labels. A Noul answer carries `type` and `noul` — a probability, with no
+confidence or distribution beside it.
 Confidence measures how concentrated the distribution is — not whether the workflow is correct, and
 not permission to act. Typed output guarantees the interface, not the truth.
 

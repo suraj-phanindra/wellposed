@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   lintQuestion, lintRequest, extractPaths, resolvePath, lintState,
-  estimateTokens, CTX_TOTAL_TOKENS,
+  estimateTokens, textOf, CTX_TOTAL_TOKENS,
 } from '../scripts/structural.mjs';
 
 const rules = (fs) => fs.map((f) => f.rule);
@@ -136,7 +136,7 @@ test('a well-formed request is clean apart from the batching hint', () => {
 });
 
 test('state over the context budget is an error', () => {
-  const big = 'x'.repeat(CTX_TOTAL_TOKENS * 4 + 10_000);
+  const big = 'x'.repeat(Math.ceil(CTX_TOTAL_TOKENS * 5.5) + 10_000);
   const r = lintRequest({ model: 'jev-latest', state: big, questions: { q: { type: 'noul', instructions: 'ok?' } } });
   assert.ok(rules(r.findings).includes('context/over-total'));
   assert.ok(estimateTokens(big) > CTX_TOTAL_TOKENS);
@@ -187,7 +187,15 @@ test('the package really has zero dependencies, as the badge claims', async () =
   const { dirname, join } = await import('node:path');
   // ../../../ from eval/ is the package root both in this repo and in node_modules/wellposed/
   const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  } catch {
+    return; // copied outside the package layout; nothing of ours to check
+  }
+  // Copied into a host project, ../../.. is THEIR package.json. Asserting on it
+  // would fail their build and blame wellposed's badge for their dependencies.
+  if (pkg.name !== 'wellposed') return;
   for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
     assert.equal(pkg[field], undefined,
       `${field} is set — the README's "dependencies 0" badge is now a lie. Remove the dependency or fix the badge.`);
@@ -203,8 +211,19 @@ test('nothing outside node: builtins is imported', async () => {
   for (const dir of dirs) {
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.mjs'))) {
       const src = readFileSync(join(dir, f), 'utf8');
-      for (const m of src.matchAll(/(?:from|import\(?)\s*['"]([^'"]+)['"]/g)) {
-        const spec = m[1];
+      // Scan import STATEMENTS only. Matching bare /from ['"]...['"]/ also hit
+      // ordinary prose in comments, e.g. `indistinguishable from "errors found"`.
+      const specs = [];
+      for (const line of src.split('\n')) {
+        // `import ... '<spec>'`, or a re-export / multi-line tail `} from '<spec>'`.
+        // `export const X = 'https://...'` must NOT match, hence the `from`.
+        const imp = line.match(/^\s*import\b[^'"]*?['"]([^'"]+)['"]/);
+        if (imp) specs.push(imp[1]);
+        const reexp = line.match(/\bfrom\s*['"]([^'"]+)['"]\s*;?\s*$/);
+        if (reexp && /^\s*(?:export|}|\w)/.test(line) && !imp) specs.push(reexp[1]);
+        for (const dyn of line.matchAll(/\bimport\(\s*['"]([^'"]+)['"]/g)) specs.push(dyn[1]);
+      }
+      for (const spec of specs) {
         assert.ok(spec.startsWith('node:') || spec.startsWith('.'),
           `${f} imports "${spec}" — only node: builtins and relative paths are allowed`);
       }
@@ -313,4 +332,72 @@ test('the CLI exits correctly on every gate path', async () => {
   assert.equal(run('lint', ex, '--max-warnings=0'), 1, '--flag=value form must be honoured');
   assert.equal(run('lint', ex, '--max-warnings', 'abc'), 2, 'a non-numeric threshold must not silently disable the gate');
   assert.equal(run('lint', ex, '--maxwarnings', '0'), 2, 'an unknown flag must not be silently ignored');
+});
+
+// --- shapes the live API rejects (all verified 2026-09-21) -----------------
+
+test('every request shape the API rejects is caught locally as an error', async () => {
+  const { MAX_SCORE_LEVELS } = await import('../scripts/structural.mjs');
+  const Q = (q) => ({ model: 'jev-latest', state: 'test', questions: { q } });
+  const cases = [
+    ['Choice criteria as array (422 dict_type)', Q({ type: 'choice', instructions: 'W?', criteria: ['a', 'b'] })],
+    ['Score criteria as object (422 list_type)', Q({ type: 'score', instructions: 'W?', criteria: { lo: 'a', hi: 'b' } })],
+    ['Noul criteria {} (400)', Q({ type: 'noul', criteria: {} })],
+    ['Choice criteria {} (400)', Q({ type: 'choice', instructions: 'W?', criteria: {} })],
+    ['Score over the level cap (400)', Q({ type: 'score', instructions: 'W?', criteria: Array.from({ length: MAX_SCORE_LEVELS + 2 }, (_, i) => `level ${i}`) })],
+    ['state null (422)', { model: 'jev-latest', state: null, questions: { q: { type: 'noul', instructions: 'ok?' } } }],
+    ['state scalar (422)', { model: 'jev-latest', state: 42, questions: { q: { type: 'noul', instructions: 'ok?' } } }],
+    ['empty question key (400)', { model: 'jev-latest', state: 'x', questions: { '': { type: 'noul', instructions: 'ok?' } } }],
+  ];
+  for (const [label, req] of cases) {
+    assert.ok(lintRequest(req).counts.error > 0, `not caught: ${label}`);
+  }
+});
+
+test('resolvePath only sees own properties and handles dotted keys', () => {
+  assert.equal(resolvePath({ ticket: {} }, 'ticket.constructor').found, false);
+  assert.equal(resolvePath({ ticket: {} }, 'ticket.toString').found, false);
+  assert.equal(resolvePath({}, '__proto__').found, false);
+  assert.equal(resolvePath({ 'a.b': 1 }, 'a.b').found, true, 'a literal dotted key must resolve');
+  assert.equal(resolvePath({ xs: [{ v: 1 }] }, 'xs[0].v').found, true);
+});
+
+test('textOf survives cycles and deep nesting', () => {
+  const cyclic = { a: 1 };
+  cyclic.self = cyclic;
+  assert.doesNotThrow(() => textOf(cyclic));
+  let deep = { v: 'leaf' };
+  for (let i = 0; i < 500; i++) deep = { next: deep };
+  assert.doesNotThrow(() => textOf(deep));
+  assert.doesNotThrow(() => lintRequest({ model: 'm', state: 'x', questions: { q: { type: 'noul', instructions: deep } } }));
+});
+
+test('token estimate is calibrated and errs on the conservative side', async () => {
+  const { estimateTokens, CHARS_PER_TOKEN_TEXT, CHARS_PER_TOKEN_JSON } = await import('../scripts/structural.mjs');
+  // Measured against the API's own usage.input_tokens on 2026-09-21.
+  const prose = 'The customer reported that the payment failed repeatedly and asked for a refund of the duplicate charge. ';
+  const rec = (i) => ({ id: `A-${i}`, status: 'captured', amount_usd: 49, note: 'duplicate charge on the account' });
+  for (const [value, actual] of [
+    [prose.repeat(20), 361], [prose.repeat(60), 1081],
+    [{ records: Array.from({ length: 20 }, (_, i) => rec(i)) }, 855],
+    [{ records: Array.from({ length: 60 }, (_, i) => rec(i)) }, 2575],
+  ]) {
+    const est = estimateTokens(value);
+    assert.ok(est >= actual, `must not under-estimate: ${est} < ${actual}`);
+    assert.ok(est < actual * 1.25, `must not wildly over-estimate: ${est} vs ${actual}`);
+  }
+  assert.ok(CHARS_PER_TOKEN_TEXT > CHARS_PER_TOKEN_JSON, 'prose packs more chars per token than JSON');
+});
+
+test('a bundled-judgment exemption covers enumerated evidence and quotes', () => {
+  const exempt = [
+    'Is this ticket urgent? Consider the subject, the body, and whether a deadline is named.',
+    'Does the message contain the phrase "please cancel and do not renew"?',
+  ];
+  for (const instructions of exempt) {
+    assert.ok(!rules(lintQuestion('q', { type: 'noul', instructions })).includes('jev/bundled-judgments'),
+      `false positive on: "${instructions}"`);
+  }
+  assert.ok(rules(lintQuestion('q', { type: 'noul', instructions: 'Is the rent within budget and are pets allowed?' }))
+    .includes('jev/bundled-judgments'), 'real bundling must still fire');
 });

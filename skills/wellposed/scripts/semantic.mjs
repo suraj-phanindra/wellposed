@@ -24,14 +24,24 @@
  * failures instead of being silently rounded.
  */
 
-import { textOf } from './structural.mjs';
+import { textOf, applyOverrides } from './structural.mjs';
 
 export const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export const DEFAULT_MODEL = 'jev-latest';
 
-/** Uncertain band. Inside it we warn instead of asserting. */
+/**
+ * Uncertain band. A Noul near 0.5 is genuine ambiguity, not a mild verdict, so
+ * the middle routes to `info` rather than being rounded into a decision.
+ * Bounds match the documented wording ("warn above 0.65, uncertain 0.35-0.65"):
+ * strictly above HIGH warns, HIGH itself is uncertain. jev quantizes to two
+ * decimals, so both endpoints occur in practice.
+ */
 export const LOW = 0.35;
 export const HIGH = 0.65;
+/** Request policy for the review calls. All overridable via opts. */
+export const TIMEOUT_MS = 30_000;
+export const MAX_RETRIES = 2;
+export const CONCURRENCY = 6;
 
 /**
  * Each check: which primitives it applies to, the yes/no question to ask about
@@ -154,21 +164,26 @@ export const CHECKS = [
 
 /** Build the meta-request that reviews ONE question. */
 export function buildReviewRequest(id, q, { state, model = DEFAULT_MODEL, structuralRules = new Set() } = {}) {
-  const checks = CHECKS.filter(
-    (c) => c.applies.includes(q?.type) && (!c.gatedOn || structuralRules.has(c.gatedOn))
-  );
+  const checks = CHECKS.filter((c) =>
+    c.applies.includes(q?.type)
+    && (!c.gatedOn || structuralRules.has(c.gatedOn))
+    // `needsState` was declared and never read: a request with no state handed
+    // the reviewer the string "null" and was billed for the answer anyway.
+    && (!c.needsState || (state != null && textOf(state).trim() !== '')));
   if (!checks.length) return { request: null, checks };
 
+  // Six of the seven checks are about the QUESTION, so a long state is only
+  // distraction and measurably costs accuracy. `unanswerable-from-state` is the
+  // exception: truncating its evidence made it report that evidence was missing
+  // when wellposed had removed it. That one gets the full state.
+  const needsFullState = checks.some((c) => c.needsState);
   const reviewState = {
     question: {
       type: q.type,
       instructions: textOf(q.instructions),
       ...(q.criteria != null ? { criteria: q.criteria } : {}),
     },
-    // Truncated: these checks are about the question, not the payload. Sending a
-    // huge state here would burn context and, per the jaggedness notes, cost
-    // accuracy through unrelated detail.
-    state: truncate(state, 2000),
+    state: needsFullState ? (state ?? null) : truncate(state, 2000),
   };
 
   const questions = {};
@@ -204,40 +219,80 @@ export async function semanticLint(req, opts = {}) {
   const usage = { input_tokens: 0, output_tokens: 0 };
   let calls = 0;
 
-  const results = await Promise.all(entries.map(async ([id, q]) => {
+  const review = async ([id, q]) => {
     const structuralRules = opts.structuralByQuestion?.get(id) ?? new Set();
     const { request, checks } = buildReviewRequest(id, q, { state: req.state, model, structuralRules });
     if (!request) return [];
-    const res = await doFetch(ENDPOINT, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
-    calls++;
+    let res;
+    for (let attempt = 0; ; attempt++) {
+      res = await doFetch(ENDPOINT, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        // Without this a stalled endpoint hangs the CLI with no output.
+        signal: AbortSignal.timeout(opts.timeoutMs ?? TIMEOUT_MS),
+      });
+      calls++;
+      if (res.ok) break;
+      if (attempt >= (opts.maxRetries ?? MAX_RETRIES)) break;
+      if (res.status !== 429 && res.status < 500) break;
+      await new Promise((r) => setTimeout(r, 400 * 2 ** attempt));
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      throw new Error(`semantic lint call failed for question "${id}": HTTP ${res.status} ${body.slice(0, 200)}`);
+      const err = new Error(`semantic lint call failed for question "${id}": HTTP ${res.status} ${body.slice(0, 200)}`);
+      err.code = 'SEMANTIC_HTTP';
+      throw err;
     }
     const json = await res.json();
+    if (!json || typeof json.answers !== 'object' || json.answers === null) {
+      const err = new Error(`semantic lint got HTTP 200 with no answers for question "${id}"`);
+      err.code = 'SEMANTIC_SHAPE';
+      throw err;
+    }
     usage.input_tokens += json.usage?.input_tokens ?? 0;
     usage.output_tokens += json.usage?.output_tokens ?? 0;
     const out = [];
+    let answered = 0;
     for (const c of checks) {
       const p = json.answers?.[c.id]?.noul;
       if (typeof p !== 'number') continue;
+      answered++;
       const pDefect = c.defectWhen ? p : 1 - p;
-      if (pDefect >= HIGH) {
+      if (pDefect > HIGH) {
         out.push({ rule: c.id, severity: 'warn', questionId: id, probability: p,
                    message: `Question "${id}" ${c.message(p)}.`, fix: c.fix, doc: c.doc });
-      } else if (pDefect > LOW) {
+      } else if (pDefect >= LOW) {
         out.push({ rule: c.id, severity: 'info', questionId: id, probability: p,
                    message: `Question "${id}" — uncertain: ${c.message(p)}. jev is near 0.5 here, which means genuine ambiguity rather than a mild verdict.`,
                    fix: c.fix, doc: c.doc });
       }
     }
+    if (checks.length && answered === 0) {
+      const err = new Error(`semantic lint: none of the ${checks.length} checks for "${id}" came back`);
+      err.code = 'SEMANTIC_SHAPE';
+      throw err;
+    }
     return out;
-  }));
+  };
 
-  for (const r of results) findings.push(...r);
-  return { findings, calls, usage };
+  // A bounded pool: one request per question fired at once meant 300 questions
+  // became 300 simultaneous connections.
+  const queue = entries.map((e, i) => [i, e]);
+  const collected = [];
+  const worker = async () => {
+    for (;;) {
+      const next = queue.shift();
+      if (!next) return;
+      collected.push([next[0], await review(next[1])]);
+    }
+  };
+  const width = Math.max(1, Math.min(opts.concurrency ?? CONCURRENCY, entries.length));
+  await Promise.all(Array.from({ length: width }, worker));
+  collected.sort((a, b) => a[0] - b[0]);
+  for (const [, r] of collected) findings.push(...r);
+
+  // M13: `--config` overrides were threaded in here and silently dropped, so
+  // turning a semantic rule off did nothing and said nothing.
+  return { findings: applyOverrides(findings, opts.rules), calls, usage };
 }
