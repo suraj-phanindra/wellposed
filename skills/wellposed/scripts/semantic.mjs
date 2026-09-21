@@ -37,7 +37,11 @@ export const DEFAULT_MODEL = 'jev-latest';
  * decimals, so both endpoints occur in practice.
  */
 export const LOW = 0.35;
-export const HIGH = 0.65;
+// Lowered from 0.65 on 2026-09-21 after the first corpus measurement: precision
+// held at 100% (0 false alarms on 35 adversarial negatives) at every threshold
+// down to 0.30, while recall rose from 24/35 to 28/35 at 0.50. 0.50 was chosen
+// over 0.30 to keep a genuine uncertain band rather than fit 70 items.
+export const HIGH = 0.50;
 /** Request policy for the review calls. All overridable via opts. */
 export const TIMEOUT_MS = 30_000;
 export const MAX_RETRIES = 2;
@@ -119,12 +123,19 @@ export const CHECKS = [
     id: 'semantic/degree-as-noul',
     applies: ['noul'],
     defectWhen: true,
+    // Measured 0/5 recall in its first form, which asked whether the question
+    // says "how much". The real failure class is phrased as a yes/no over a
+    // GRADABLE property — "is this pain severe", "is this PR risky" — where the
+    // surface form is a condition but the underlying property is a matter of
+    // degree with no stated cutoff.
     instructions:
-      'Does `question.instructions` ask about a DEGREE or QUANTITY — how much, how severe, how many, a rating or a ' +
-      'position on a scale — rather than a condition that is simply true or false?',
+      'Does `question.instructions` turn on a property that is a matter of DEGREE — severe, risky, strong, ' +
+      'reliable, toxic, significant, good — where reasonable people would put the cutoff in different places, ' +
+      'AND neither the instructions nor `question.criteria` say where that line falls? Include questions ' +
+      'phrased as a yes/no about such a property, not only ones that literally ask "how much".',
     criteria: {
-      true: 'It asks for a degree, amount, or rating, which a yes/no probability cannot express.',
-      false: 'It asks whether a condition holds, which is a genuine yes/no.',
+      true: 'The property varies by degree and no threshold is given, so a yes/no answer hides where the line was drawn.',
+      false: 'The condition is sharply defined, or the criteria state explicitly where the cutoff falls.',
     },
     message: (p) => `is a degree question asked as a Noul (P=${p.toFixed(2)}); P(yes) cannot express "how much"`,
     fix: 'Use a Score with ordered, concrete levels, or restate as a sharp yes/no condition.',

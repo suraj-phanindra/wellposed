@@ -190,6 +190,31 @@ numbers drop and you see it.
 Plus 35 unit tests. Three exist specifically because we sent those exact broken requests to the real
 API and recorded what it said.
 
+**The semantic layer has its own corpus**, added later than it should have been. 70 items, seven
+checks, five positives and five deliberately adversarial negatives each — questions that look like the
+defect but are actually fine. `npm run eval:semantic` scores it with one live jev call per item:
+
+```
+  check                            n   recall  precision  unsure
+  --------------------------------------------------------------
+  bundled-judgments               10      4/5        4/4       1
+  criteria-contradict-instructions  10      3/5        3/3       1
+  degree-as-noul                  10      5/5        5/5       0
+  escape-hatch-needed             10      5/5        5/5       1
+  levels-unordered                10      5/5        5/5       0
+  options-not-exclusive           10      5/5        5/5       0
+  unanswerable-from-state         10      5/5        5/5       0
+
+  recall    32/35 = 91%      precision  32/32 = 100%
+```
+
+The first run of this corpus scored 69%, and it found one check — `degree-as-noul` — at **0/5**. It had
+been written to detect questions that literally ask "how much", and missed the whole real failure
+class: yes/no questions over a gradable property with no stated cutoff ("is this pull request
+risky?"). Rewording it took that check to 5/5. The same run showed precision holding at 100% down to a
+threshold of 0.30, so the warn threshold moved from 0.65 to 0.50 and picked up four more true
+positives for free.
+
 ## Install
 
 ### Claude Code
@@ -284,6 +309,11 @@ A working example ships at
   about meaning. If your option set really is exhaustive, turn the rule off.
 - **One label was corrected after the fact**, and the correction is recorded in
   [`corpus.json`](skills/wellposed/eval/corpus.json) under `corrections` rather than quietly applied.
+- **The semantic corpus was generated and labelled by the same model, and the two agreed 70/70.**
+  Read that as self-consistency, not correctness — a bias they hold in common is invisible to it. The
+  generators were at least kept blind to the check wording so the cases could not echo the grader.
+  jev is a different model, so where it disagrees with these labels either side could be wrong; those
+  disagreements are printed by the harness rather than hidden.
 - **Rules cite their source.** `verified` means reproduced against the live API; everything else cites
   a docs page. `wellposed rules` shows which is which.
 - Codex behaviour was verified against Codex as of **2026-09-17**. Older builds may need

@@ -1,0 +1,1723 @@
+{
+  "$comment": "Evaluation corpus for wellposed's SEMANTIC (jev-on-jev) checks. Scored by eval/semantic-agreement.mjs, which makes one live jev call per item.",
+  "generated": "2026-09-21",
+  "model": "jev-1.13",
+  "method": "Seven generators, one per check, were given the defect in plain English and explicitly forbidden from reading semantic.mjs, so the cases could not be shaped by the wording of the grader they test. Each wrote 5 positives and 5 adversarial negatives - questions that superficially resemble the defect but are actually well-posed. A second agent then re-labelled every item blind: no intended label, no rationale, and not told how many were positive.",
+  "caveat": "Generator and adjudicator agreed on 70/70. Read that as self-consistency, NOT as correctness: both are the same underlying model and share its priors, so agreement cannot detect a bias they hold in common. It does establish that the items are unambiguous to that model. The independent signal is jev itself, which is a different model - where jev disagrees with these labels, either could be wrong, and the disagreement list is the part worth reading.",
+  "items": [
+    {
+      "id": 1,
+      "defect": "bundled-judgments",
+      "intent": "Auto-route return requests that need a manual refund decision, and flag retention risk.",
+      "state": {
+        "order_id": "NA-88214",
+        "customer_since": "2021-03",
+        "lifetime_value_usd": 2140,
+        "delivered": "2026-09-08",
+        "request_opened": "2026-09-19",
+        "message": "Third espresso machine this year to arrive with a cracked boiler housing. Photos attached again. Refund the full $489 to the original card or I take my business to Breville direct."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Answer true if this request qualifies for a full refund under the 30-day damage policy and the customer is at risk of churning.",
+        "criteria": {
+          "true": "The request is within 30 days of delivery with reported damage, and the customer is likely to stop buying from us.",
+          "false": "Anything else."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Policy eligibility and churn risk are independent judgments, so a `false` cannot tell you whether the refund was denied or the customer was judged safe.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 2,
+      "defect": "bundled-judgments",
+      "intent": "Triage inbound patient portal messages before the nurse queue opens.",
+      "state": {
+        "patient_age": 58,
+        "channel": "portal_message",
+        "sent": "2026-09-21T06:12",
+        "text": "Woke up around 4am with tightness across my chest that eased once I sat up. Separately, I'm down to my last three lisinopril tablets - can someone send a refill to the Walgreens on Cedar?"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Answer true if the message describes symptoms that need same-day clinical review and the patient is asking for a prescription refill.",
+        "criteria": {
+          "true": "Symptoms warrant same-day review, and a refill is being requested.",
+          "false": "Either condition is absent."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Clinical urgency and the presence of a refill request are two unrelated properties collapsed into one boolean, so the answer cannot drive either the nurse queue or the pharmacy queue.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 3,
+      "defect": "bundled-judgments",
+      "intent": "Score incoming pull requests so reviewers know which ones to pick up first.",
+      "state": {
+        "repo": "payments-api",
+        "pr": "#4412",
+        "title": "Make Stripe webhook handling idempotent",
+        "description": "Adds an idempotency key to the webhook handler. Fixes the duplicate-capture bug from INC-2211.",
+        "files_changed": 7,
+        "tests_added": 1,
+        "diff": "+238 / -41"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate this pull request on how clearly the description explains the change and how well the diff is covered by tests.",
+        "criteria": [
+          "description is unreadable and the diff has no tests",
+          "description is vague and test coverage is thin",
+          "description is adequate and coverage is partial",
+          "description is clear and most changed paths are tested",
+          "description is excellent and every changed path is tested"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "Description clarity and test coverage vary independently, so a well-written PR with one test and a terse PR with full coverage both land mid-scale with no way to tell them apart.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 4,
+      "defect": "bundled-judgments",
+      "intent": "Decide which late deliveries to file carrier claims for.",
+      "state": {
+        "shipment": "FDX-7719204",
+        "sla": "2026-09-16 EOD",
+        "delivered": "2026-09-18 11:40",
+        "scans": [
+          "09-14 picked up, Memphis hub",
+          "09-15 weather hold, Denver",
+          "09-17 out for delivery",
+          "09-17 delivery attempted, receiving dock closed",
+          "09-18 delivered"
+        ]
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Answer true if this shipment missed its contractual SLA and the carrier was responsible for the delay.",
+        "criteria": {
+          "true": "Delivery landed after the SLA timestamp and the cause sits with the carrier.",
+          "false": "Otherwise."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Whether the SLA was missed is a timestamp comparison and whether the carrier caused it is a fault attribution; bundling them hides which one made the claim ineligible.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 5,
+      "defect": "bundled-judgments",
+      "intent": "Label reported comments so the moderation queue can act without a second pass.",
+      "state": {
+        "comment": "Nobody wants your half-baked crypto course, grandma. Post it again and everyone in this sub will know exactly where you work.",
+        "community": "r/personalfinance",
+        "reports": 4,
+        "account_age_days": 612
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Pick the label that records which policy this comment violates and what the queue should do with it.",
+        "criteria": {
+          "harassment_remove": "Targets a specific user with abuse or intimidation; take the comment down",
+          "harassment_warn": "Targets a specific user with abuse or intimidation; leave it up and warn the author",
+          "spam_remove": "Unsolicited promotion of a product or service; take the comment down",
+          "spam_warn": "Unsolicited promotion of a product or service; leave it up and warn the author",
+          "no_violation": "Nothing here breaks the community rules"
+        }
+      },
+      "has_defect": true,
+      "rationale": "The option set crosses a policy-category judgment with an enforcement-severity judgment, so a wrong answer never reveals whether the classifier misread the content or the punishment.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 6,
+      "defect": "bundled-judgments",
+      "intent": "Flag limitation-of-liability language across a vendor contract set for the legal team's redline pass.",
+      "state": "8.3 Neither party's aggregate liability arising out of or relating to this Agreement shall exceed the fees paid by Customer in the twelve (12) months preceding the event giving rise to the claim, and in no event shall either party be liable for lost profits, loss of data, or any indirect, incidental or consequential damages.",
+      "question": {
+        "type": "noul",
+        "instructions": "Answer true if this clause is a limitation-of-liability provision.",
+        "criteria": {
+          "true": "The clause limits liability - by capping aggregate damages, by excluding indirect or consequential damages, or by doing both.",
+          "false": "The clause does something else (indemnity, warranty, termination, confidentiality)."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The several clauses are alternative ways of satisfying one definition of a single contract-clause category, not separate judgments, so one boolean fully answers the question.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 7,
+      "defect": "bundled-judgments",
+      "intent": "Pre-screen expense reports so only real policy breaches reach the finance reviewer.",
+      "state": {
+        "report": "EXP-33918",
+        "employee_dept": "Field Sales",
+        "city": "Austin, TX",
+        "line_item": "Lodging, $412/night x 2 nights",
+        "high_cost_exception_list": [
+          "New York",
+          "San Francisco",
+          "Boston",
+          "Zurich"
+        ],
+        "preapproval_ticket": null,
+        "employee_note": "Conference room block sold out, booked the Driskill"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Answer true if this lodging line breaches Travel Policy 4.2. Policy 4.2 is breached when the nightly rate exceeds $350, the city is not on the high-cost exception list, and no pre-approval ticket is attached.",
+        "criteria": {
+          "true": "The line meets the policy's definition of a breach.",
+          "false": "The line does not breach Policy 4.2."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The three conditions are the stated definition of one rule, and the single verdict asked for - does this line breach 4.2 - is exactly what the reviewer needs.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 8,
+      "defect": "bundled-judgments",
+      "intent": "Route leave requests from the HR inbox to the right policy workflow.",
+      "state": {
+        "from": "employee, 4 years tenure",
+        "message": "My wife is due November 3rd and her mother is flying in to help out. I'd like to take the eight weeks starting the week of the due date, and I may need a few afternoons before then for the prenatal appointments."
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Which leave policy does this request fall under?",
+        "criteria": {
+          "parental": "Bonding, recovery or care time connected to a birth, adoption or foster placement, including prenatal appointments for the expecting parent or their partner",
+          "medical": "The employee's own serious health condition, injury or surgery recovery",
+          "family_care": "Caring for a spouse, child or parent with a serious health condition unrelated to a birth",
+          "bereavement": "Time off following the death of a family member or close relation",
+          "unpaid_personal": "Anything outside the above that needs manager discretion"
+        }
+      },
+      "has_defect": false,
+      "rationale": "One judgment on one axis - which policy applies - where the option descriptions carry several clauses only to draw the boundary between neighbouring leave types.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 9,
+      "defect": "bundled-judgments",
+      "intent": "Order the overnight support queue by how much pain the customer is in right now.",
+      "state": {
+        "account": "Northwind Logistics (Enterprise, $180k ARR)",
+        "ticket": "Bulk CSV import has failed with 'column mismatch' since 06:00; the ops team is keying shipments in by hand to keep trucks moving",
+        "reporter": "Ops manager",
+        "first_reply_sent": false
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how badly the customer's day-to-day workflow is blocked right now.",
+        "criteria": [
+          "nothing is blocked - a question, a feature request or a cosmetic complaint",
+          "a task is slower or more annoying, but the normal path still works",
+          "a task is blocked and a documented workaround is available and in use",
+          "a core workflow is blocked and the only workaround is manual and costly",
+          "the customer cannot operate at all and no workaround exists"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "Every level describes one property - degree of blockage - and workaround availability appears as a symptom of that degree, not as a second thing to judge.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 10,
+      "defect": "bundled-judgments",
+      "intent": "Split auto claims into the total-loss settlement path or the repair-shop path.",
+      "state": {
+        "claim": "CLM-2026-41188",
+        "vehicle": "2019 Subaru Outback, 94k miles",
+        "actual_cash_value_usd": 18400,
+        "repair_estimate_usd": 14950,
+        "adjuster_note": "Unibody rail kinked behind the strut tower. Frame shop says pulling it is not economical and won't warranty the work. Recommend we settle and send it to salvage."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Answer true if this claim should go down the total-loss path rather than the repair path.",
+        "criteria": {
+          "true": "The vehicle is a total loss - repair cost at or above 75% of actual cash value, or structurally unrecoverable.",
+          "false": "The vehicle should be routed for repair."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The 'or' lists two alternative tests for the same status and the 'rather than' names the opposite branch of the same call, so only one judgment is being made.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 11,
+      "defect": "unanswerable-from-state",
+      "intent": "Dispatcher wants open LTL shipments ranked so the exceptions desk escalates the worst ones first.",
+      "state": {
+        "shipment_id": "SHP-4471902",
+        "carrier": "Estes",
+        "service": "LTL standard",
+        "origin": "Memphis, TN",
+        "destination": "Reno, NV",
+        "pieces": 6,
+        "weight_lb": 1420,
+        "accessorials": [
+          "liftgate delivery"
+        ],
+        "last_scan": {
+          "ts": "2026-09-19T04:12:00Z",
+          "location": "Memphis, TN",
+          "status": "Departed origin terminal"
+        }
+      },
+      "question": {
+        "type": "score",
+        "instructions": "How far behind its committed delivery window is this shipment running right now?",
+        "criteria": [
+          "on time",
+          "slightly behind",
+          "materially behind",
+          "critically behind"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The record carries no committed delivery date, transit standard, or current ETA, so lateness cannot be computed from what is here.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 12,
+      "defect": "unanswerable-from-state",
+      "intent": "Expense tool deciding whether a line can auto-approve or must route to the manager.",
+      "state": {
+        "expense_id": "EXP-20913",
+        "employee": "m.okafor",
+        "submitted": "2026-09-18",
+        "amount_usd": 1840,
+        "category": "Airfare",
+        "vendor": "United",
+        "trip": "SFO-ORD-SFO, Oct 6-9",
+        "project_code": "NA-Retail-Onboarding",
+        "receipt": "attached (itinerary PDF)",
+        "approver": "d.reyes"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Would approving this expense push the employee past the travel budget they have left for the quarter?",
+        "criteria": {
+          "true": "approving it exceeds the remaining quarterly travel budget",
+          "false": "approving it stays within the remaining quarterly travel budget"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Neither the budget amount nor quarter-to-date spend is present, so the comparison needs a lookup in the finance system.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 13,
+      "defect": "unanswerable-from-state",
+      "intent": "Deal desk triaging a vendor redline before it goes to counsel.",
+      "state": "Vendor redline, Order Form \u00a79 (Oct 6 draft): 'Notwithstanding anything to the contrary, Vendor's aggregate liability under this Order Form shall not exceed the fees paid in the three (3) months preceding the claim.' The prior draft read twelve (12) months. Deal desk asks whether this can be accepted without escalating to legal.",
+      "question": {
+        "type": "choice",
+        "instructions": "Does this redlined cap conflict with the liability cap in our master services agreement?",
+        "criteria": {
+          "conflicts_with_msa": "The redlined cap falls below what the MSA permits for an order form",
+          "consistent_with_msa": "The redlined cap is allowed under the MSA's liability terms"
+        }
+      },
+      "has_defect": true,
+      "rationale": "The MSA's liability provision is never quoted or summarized here, so the conflict can only be judged by pulling up the master agreement.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 14,
+      "defect": "unanswerable-from-state",
+      "intent": "Front desk deciding whether to collect the copay or full self-pay at check-in.",
+      "state": {
+        "patient": "R.T.",
+        "dob": "1978-04-02",
+        "visit_date": "2026-09-22",
+        "provider": "Dr. Ahuja, Internal Medicine",
+        "payer": "Blue Shield of CA PPO",
+        "member_id": "XEN884120366",
+        "group": "W0043",
+        "referral_on_file": true,
+        "planned_cpt": "99213",
+        "copay_collected": false
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this patient's coverage active on the date of service?",
+        "criteria": {
+          "true": "the plan is in force on the visit date",
+          "false": "the plan is terminated, lapsed, or not in force on the visit date"
+        }
+      },
+      "has_defect": true,
+      "rationale": "A member ID is not an eligibility result; nothing in the intake record says whether the policy is currently in force.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 15,
+      "defect": "unanswerable-from-state",
+      "intent": "On-call engineer deciding whether to revert a commit after a red main build.",
+      "state": "CI job #20418 (integration suite, node 20) failed on branch main at commit 9f2ad1c: 'billing/webhook.spec.ts > retries expired invoice: Timeout of 30000ms exceeded'. 1 failed, 214 passed, runner ubuntu-22.04, total duration 11m. The engineer wants to know whether to revert 9f2ad1c.",
+      "question": {
+        "type": "choice",
+        "instructions": "Was this test failure introduced by commit 9f2ad1c, or was it already failing on main before that commit landed?",
+        "criteria": {
+          "introduced_by_9f2ad1c": "The commit under review caused the failure",
+          "pre_existing": "The test was already failing on main before this commit"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Only one job's output is provided; distinguishing new from pre-existing requires the prior runs on main, which are not here.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 16,
+      "defect": "unanswerable-from-state",
+      "intent": "Support lead routing tickets to the retention queue.",
+      "state": "Zendesk #88421, customer reply (Sept 19): 'Third week of this SSO redirect loop and still no ETA. If it isn't fixed by Friday I'm moving the team to Okta and cancelling before our Oct 1 renewal \u2014 do not auto-charge us.' Account plan: Business, renewal date Oct 1.",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this message express an intent to cancel ahead of the upcoming renewal?",
+        "criteria": {
+          "true": "the message states cancellation intent, conditional or outright, tied to the upcoming renewal",
+          "false": "the message does not state cancellation intent tied to the renewal"
+        }
+      },
+      "has_defect": false,
+      "rationale": "Despite the future dates, the question is about what the quoted message expresses, and the message and renewal date are both present.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 17,
+      "defect": "unanswerable-from-state",
+      "intent": "Returns agent applying the posted policy to a submitted return request.",
+      "state": {
+        "order": "ORD-77219",
+        "ordered": "2026-08-21",
+        "delivered": "2026-08-25",
+        "item": "Nala one-piece swimsuit, size M",
+        "return_submitted": "2026-09-18",
+        "customer_note": "tried on over underwear, tags still attached",
+        "policy_excerpt": "Apparel: unworn and tagged, within 30 days of delivery. Swimwear and intimates: final sale \u2014 no returns or exchanges."
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Under the policy excerpt shown, which disposition applies to this return request?",
+        "criteria": {
+          "refund_to_original_payment": "The item qualifies for a refund under the apparel rule",
+          "store_credit": "The item is returnable but only for store credit under the excerpt",
+          "deny_final_sale": "The excerpt's final-sale rule bars the return"
+        }
+      },
+      "has_defect": false,
+      "rationale": "It names an external policy, but the controlling excerpt plus the dates and item category are all included, so the disposition follows from the state.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 18,
+      "defect": "unanswerable-from-state",
+      "intent": "Hiring panel scoring a take-home before the debrief.",
+      "state": {
+        "role": "Data Engineer II",
+        "prompt_requirements": [
+          "idempotent backfill",
+          "documented schema assumptions",
+          "tests covering late-arriving rows"
+        ],
+        "submission_summary": "PR adds a backfill DAG keyed on a run-id dedupe column, a README section listing four schema assumptions, and nine unit tests \u2014 all on happy-path parsing, none exercising late arrivals.",
+        "stage": "round 2"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "How completely does this submission address the three stated take-home requirements?",
+        "criteria": [
+          "addresses none of the three",
+          "addresses one",
+          "addresses two",
+          "addresses all three"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "It looks like it needs the repository, but the summary reports evidence against each of the three listed requirements, so the count is derivable here.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 19,
+      "defect": "unanswerable-from-state",
+      "intent": "Marketplace moderator reviewing a health-claim listing before it goes live.",
+      "state": {
+        "listing_id": "MP-30914",
+        "title": "ClearLux Blue-Light Glasses \u2014 FDA approved, blocks 99% of HEV",
+        "brand": "ClearLux",
+        "category": "Health & Personal Care",
+        "description": "Doctor recommended. FDA approved lens coating.",
+        "uploaded_docs": [],
+        "certification_number": null,
+        "policy": "Health and regulatory claims require substantiation attached to the listing at submission."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Does this submission include substantiation for the FDA-approval claim?",
+        "criteria": {
+          "true": "substantiation is attached or cited somewhere in the submitted fields",
+          "false": "no substantiation appears in any submitted field"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The question asks about a missing fact, but the submission's attachment and certification fields are enumerated and empty, so the absence itself is the answer.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 20,
+      "defect": "unanswerable-from-state",
+      "intent": "Deal desk checking a redline against the governing agreement before sign-off.",
+      "state": "Order Form \u00a79 redline: 'Vendor's aggregate liability shall not exceed the fees paid in the twelve (12) months preceding the claim.' MSA \u00a711.2, in force, quoted by deal desk: 'Liability under any Order Form shall not be limited to less than twelve (12) months of fees, except where expressly agreed in writing by Customer's General Counsel.'",
+      "question": {
+        "type": "choice",
+        "instructions": "Does the redlined cap stay within MSA \u00a711.2 as quoted, or does it require the General Counsel's written exception?",
+        "criteria": {
+          "within_msa": "The redlined cap satisfies the floor set by \u00a711.2",
+          "requires_gc_exception": "The redlined cap falls below the \u00a711.2 floor and needs written GC agreement"
+        }
+      },
+      "has_defect": false,
+      "rationale": "It cites an external master agreement, but the controlling \u00a711.2 language is quoted alongside the redline, so both caps can be compared directly.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 21,
+      "defect": "options-not-exclusive",
+      "intent": "Auto-route an inbound support email to the right queue.",
+      "state": {
+        "ticket_id": "SUP-48211",
+        "channel": "email",
+        "plan": "Team",
+        "subject": "Charged twice for September and now I can't log in",
+        "body": "I got billed $49 twice on Sep 3. I went to download the invoices but the password reset email never shows up, not even in spam. Please refund the duplicate charge and get my login working."
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Route this ticket to the queue matching its primary issue.",
+        "criteria": {
+          "billing": "The customer is disputing or asking about a charge, invoice, or refund",
+          "account_access": "The customer cannot sign in, reset a password, or receive account emails",
+          "email_delivery": "Transactional email we send is not reaching the customer",
+          "general": "Anything that does not fit the above"
+        }
+      },
+      "has_defect": true,
+      "rationale": "The missing reset email satisfies both account_access and email_delivery, and the duplicate charge satisfies billing, so three options compete for one answer.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 22,
+      "defect": "options-not-exclusive",
+      "intent": "Tag a contract excerpt by clause type for a clause library.",
+      "state": "MSA \u00a79.3: \"Neither party's aggregate liability under this Agreement shall exceed fees paid in the prior twelve (12) months; provided that Vendor shall defend and hold Customer harmless against third-party claims alleging the Software infringes a patent or copyright, and Vendor's obligations under this proviso are not subject to the foregoing cap.\"",
+      "question": {
+        "type": "choice",
+        "instructions": "Select the clause type for this excerpt.",
+        "criteria": {
+          "limitation_of_liability": "Caps or limits the amount a party can owe",
+          "indemnification": "One party agrees to defend or cover the other against third-party claims",
+          "risk_allocation": "Any provision that assigns commercial or legal risk between the parties",
+          "ip_warranty": "A promise concerning ownership or non-infringement of intellectual property"
+        }
+      },
+      "has_defect": true,
+      "rationale": "The excerpt is both a liability cap and an indemnity, and risk_allocation is a superset that is true of every other option.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 23,
+      "defect": "options-not-exclusive",
+      "intent": "Pick the hold reason shown to a cardholder when a transfer is frozen.",
+      "state": {
+        "txn_id": "TX-9921044",
+        "amount": "$4,820.00",
+        "payee": "added 11 minutes ago",
+        "device": "iPhone, first seen today",
+        "geo": "Lisbon, PT (home: Austin, TX)",
+        "account_age_days": 1340,
+        "amount_vs_90d_p99": "3.1x"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Select the reason to display to the customer for this hold.",
+        "criteria": {
+          "unusual_location": "Transaction originates far from the account's usual geography",
+          "new_payee": "Funds are going to a payee added within the last 24 hours",
+          "high_value": "Amount exceeds the account's 90-day 99th percentile",
+          "matches_known_fraud_pattern": "The combination of signals matches a modeled fraud pattern"
+        }
+      },
+      "has_defect": true,
+      "rationale": "All three specific reasons are simultaneously true of this transaction and the fourth option subsumes them, so no single answer is determined.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 24,
+      "defect": "options-not-exclusive",
+      "intent": "Classify a failed delivery attempt so the exception routes to the right remediation.",
+      "state": {
+        "stop_id": "ST-4471",
+        "attempt": 2,
+        "scan_code": "DEX-03",
+        "address": "1420 Vireo Ct, Unit 12B (gated community)",
+        "driver_note": "gate code on file was rejected at the keypad, callbox rang with no answer, could not reach building, package retained"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Select the delivery exception reason for this attempt.",
+        "criteria": {
+          "access_restricted": "Driver could not reach the delivery point due to a gate, lobby, or locked building",
+          "customer_unavailable": "No one was present or answered to receive the package",
+          "bad_address_data": "Label details such as unit or gate code were wrong or incomplete",
+          "weather_or_road": "Conditions prevented the driver from reaching the area"
+        }
+      },
+      "has_defect": true,
+      "rationale": "The rejected gate code makes bad_address_data true, the locked gate makes access_restricted true, and the unanswered callbox makes customer_unavailable true.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 25,
+      "defect": "options-not-exclusive",
+      "intent": "Record the removal reason for a marketplace listing taken down by review.",
+      "state": {
+        "listing_id": "LST-330-882",
+        "title": "Nike Air Max 97 - factory overrun, same materials as retail",
+        "price": "$62",
+        "ships_from": "Putian, CN",
+        "photos": "retail stock images",
+        "seller_note": "no box, tags removed, 1:1 quality"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Select the policy reason for removing this listing.",
+        "criteria": {
+          "counterfeit": "The item is a fake or replica of a branded product",
+          "trademark_infringement": "The listing uses a brand name or logo without authorization",
+          "prohibited_item": "The item appears on the prohibited items list",
+          "misleading_description": "The listing text misrepresents the item's condition or origin"
+        }
+      },
+      "has_defect": true,
+      "rationale": "A counterfeit Nike listing is by definition also trademark_infringement, and the 'same materials as retail' claim makes misleading_description true as well.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 26,
+      "defect": "options-not-exclusive",
+      "intent": "Bucket a computed refund so the finance workflow picks an approval path.",
+      "state": {
+        "order_id": "ORD-71904",
+        "order_total": "$184.30",
+        "returned": "1 of 3 items - rain shell, $129.00",
+        "shipping_paid": "$12.30 (non-refundable)",
+        "restocking_fee": "$0.00",
+        "policy": "item price only; shipping and fees excluded",
+        "condition_on_arrival": "unworn, tags attached"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Which band does the refund owed on this return fall into?",
+        "criteria": {
+          "none": "$0.00 - nothing is refundable under policy",
+          "under_50": "More than $0.00 and up to $49.99",
+          "from_50_to_149": "$50.00 through $149.99",
+          "150_or_more": "$150.00 or more"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The four options are numeric bands that partition the amount with no shared boundary, so exactly one can be true even though they all describe the same quantity.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 27,
+      "defect": "options-not-exclusive",
+      "intent": "Assign a triage disposition from a walk-in intake note.",
+      "state": "34F walk-in. Chest pain since 7am, sharp, left of sternum. Reproducible when she presses on the sternum and when she twists her torso. Denies shortness of breath, sweating, nausea, or radiation to arm or jaw. Ambulatory, in no distress. HR 78, BP 122/78, RR 14, SpO2 99% on room air, afebrile.",
+      "question": {
+        "type": "choice",
+        "instructions": "Assign the one triage disposition for this patient.",
+        "criteria": {
+          "emergency_now": "Chest pain accompanied by any of: shortness of breath, diaphoresis, radiation to arm or jaw, or abnormal vital signs",
+          "same_day_clinic": "Chest pain reproducible on palpation or movement, with normal vital signs and none of the emergency features listed above",
+          "routine_appointment": "Chest pain that has fully resolved and has not recurred in 72 hours",
+          "nurse_callback": "No chest pain currently or historically; a different concern needing phone triage"
+        }
+      },
+      "has_defect": false,
+      "rationale": "Every option names chest pain, but the qualifiers (emergency features present, absent, resolved, never) partition the cases, and same_day_clinic explicitly excludes the emergency features.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 28,
+      "defect": "options-not-exclusive",
+      "intent": "Decide whether a post-complaint reassignment trips the retaliation policy.",
+      "state": {
+        "background": "Employee filed an internal ethics complaint on Aug 14 naming two peers on the Atlas account.",
+        "manager_message": "Given the complaint you raised, I'm moving you off Atlas so you're not in meetings with the people involved. Comp, title, and band are unchanged, and I'll backfill your hours with the Kestrel work you asked for last quarter.",
+        "employee_reply": "Works for me, I'd rather not be in those rooms."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Does this reassignment constitute a materially adverse action under the retaliation policy?",
+        "criteria": {
+          "true": "The change would dissuade a reasonable employee from raising a complaint - lost pay, title, advancement opportunity, or a worse assignment imposed over the employee's objection",
+          "false": "The change is lateral or accommodating - pay, title, and advancement path unaffected, and the employee did not object to it"
+        }
+      },
+      "has_defect": false,
+      "rationale": "This is a two-branch boolean whose criteria are complementary descriptions of the same test, not a list of options that could both be selected.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 29,
+      "defect": "options-not-exclusive",
+      "intent": "Localize where failing checkout requests stopped, to page the right on-call.",
+      "state": {
+        "alert": "checkout-api p99 5xx, 14:04 UTC",
+        "edge_logs": "1,842 requests in window; 1,190 returned 502 with upstream_connect_error; no upstream response bytes recorded",
+        "service_logs": "no matching request ids in any pod",
+        "k8s": "0/6 pods Ready in us-east-1 since 14:02",
+        "deploys": "v2.19.4 rollout started 14:01"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "At which point did the failing requests stop?",
+        "criteria": {
+          "client_never_sent": "No request reached our edge; the failure was in the browser or the client network",
+          "rejected_at_edge": "The edge produced the error itself (auth, rate limit, WAF) without attempting an upstream connection",
+          "upstream_unreachable": "The edge attempted an upstream connection and no service instance accepted it",
+          "service_returned_error": "A service instance received the request and returned a 5xx of its own"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The options are successive stopping points along one request path, each distinguished by observable evidence, so a request that stopped at one cannot have reached another.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 30,
+      "defect": "options-not-exclusive",
+      "intent": "Prioritize an auto claim for special investigations referral.",
+      "state": {
+        "claim": "CLM-77213, auto, rear-end collision, $6,400 estimate",
+        "signals": "policy bound 9 days before loss; claimant is the insured's cousin; no police report filed; both vehicles moved before any photos; prior 2024 rear-end claim on this policy paid in full",
+        "adjuster_note": "insured cooperative, damage consistent with stated impact"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how strongly this claim should be prioritized for referral to the Special Investigations Unit.",
+        "criteria": [
+          "No indicators - pay in the normal cycle",
+          "One soft indicator - document it and pay",
+          "Several soft indicators - desk review before payment",
+          "Strong indicators - hold payment and refer to SIU",
+          "Corroborated fraud evidence - deny, refer to SIU and NICB"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "These are ordered rungs of a single severity scale rather than competing categories, and each rung is bounded by the count or strength of indicators so only one level fits.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 31,
+      "defect": "escape-hatch-needed",
+      "intent": "Auto-tag return requests so the warehouse knows whether to inspect the item before restocking.",
+      "state": {
+        "order_id": "ORD-88214",
+        "sku": "SOF-HALD-3S-OAT",
+        "days_since_delivery": 6,
+        "customer_note": "Nothing's wrong with it, it arrived fine. The oat just reads much more yellow in my living room than it did on the site, and it clashes with the rug. I'd like to send it back."
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Record the return reason for this request.",
+        "criteria": {
+          "damaged_in_transit": "Item arrived broken, torn, crushed, or water-damaged",
+          "wrong_item_shipped": "Customer received a different SKU, size, or color than what they ordered",
+          "defective_on_arrival": "Item is physically intact but does not function as described"
+        }
+      },
+      "has_defect": true,
+      "rationale": "A buyer's-remorse return (item fine, color not what they expected) is one of the most common real return reasons and fits none of the three options, so the model must mislabel it as damage, a mis-ship, or a defect.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 32,
+      "defect": "escape-hatch-needed",
+      "intent": "Tag resignation notes so People Ops can chart attrition drivers by quarter.",
+      "state": "Resignation email, Sr. Data Engineer, 3.2 yrs tenure: \"After three years I need to step back. My father moved in with us in June and I'm the one taking him to dialysis three mornings a week. There's no version of this job that fits around that. This isn't about the team, my manager, or the pay \u2014 please don't read it that way.\"",
+      "question": {
+        "type": "choice",
+        "instructions": "Which attrition driver does this resignation cite?",
+        "criteria": {
+          "compensation": "Pay, equity, or bonus is the stated reason for leaving",
+          "career_growth": "Lack of promotion, scope, or learning opportunity",
+          "manager_relationship": "Conflict with, or lack of support from, their manager",
+          "competing_offer": "Leaving for a named or implied offer at another employer"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Caregiving and other personal/life-circumstance exits are routine in attrition data but have no option here, and the email explicitly rules out three of the four, forcing a false answer.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 33,
+      "defect": "escape-hatch-needed",
+      "intent": "Record why a stop was not completed so dispatch can decide whether to reschedule or reassign.",
+      "state": {
+        "stop_id": "DL-4471",
+        "route": "AUS-North-07",
+        "attempt": 1,
+        "driver_note": "Liftgate hydraulics quit at stop 3. Pallet is 480 lbs, can't get it off the truck by hand. Heading back to the depot, all remaining stops rolled to tomorrow."
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Assign the delivery exception code for this stop.",
+        "criteria": {
+          "recipient_unavailable": "No one present to receive or sign for the shipment",
+          "address_not_found": "Address does not exist or could not be located",
+          "access_restricted": "A gate, buzzer, security desk, or locked dock prevented entry"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Vehicle and equipment failures are an everyday cause of missed stops, and all three codes describe something at the destination, so a liftgate failure fits none of them.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 34,
+      "defect": "escape-hatch-needed",
+      "intent": "Route inbound email to the right support queue without a human first-touch.",
+      "state": "From an address with no account on file: \"I'm a security researcher. Your /api/v2/exports endpoint returns other tenants' documents when the tenant_id header is omitted \u2014 I can pull PDFs I have no relationship to. PoC attached, I have not shared it. Who do I disclose this to, and do you run a bounty?\"",
+      "question": {
+        "type": "choice",
+        "instructions": "Route this ticket to a queue.",
+        "criteria": {
+          "billing": "Invoices, refunds, plan changes, failed payments",
+          "bug_report": "An existing customer reports the product behaving incorrectly on their own account",
+          "feature_request": "Customer asks for functionality the product does not have",
+          "how_to": "Customer asks how to accomplish something the product already supports"
+        }
+      },
+      "has_defect": true,
+      "rationale": "An unsolicited vulnerability disclosure from a non-customer is a realistic and high-stakes inbound that matches no queue here, and bug_report is explicitly scoped to a customer's own account.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 35,
+      "defect": "escape-hatch-needed",
+      "intent": "Label failed CI runs so the flaky-build dashboard distinguishes real breakage from noise.",
+      "state": {
+        "job": "ci/build-and-test",
+        "duration_s": 41,
+        "log_tail": "npm ERR! code E429\nnpm ERR! 429 Too Many Requests - GET https://registry.npmjs.org/@types%2fnode\nnpm ERR! A complete log of this run can be found in: /home/runner/.npm/_logs/2026-09-19T14_02_11Z-debug.log\n##[error]Process completed with exit code 1"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "What caused this CI run to fail?",
+        "criteria": {
+          "compilation_error": "Source failed to typecheck or compile",
+          "test_failure": "One or more test assertions failed",
+          "lint_violation": "A style or static-analysis rule failed the build"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Infrastructure failures (registry throttling, runner OOM, network timeouts) are among the most common CI failures and none of the three options covers them, which is exactly the class the dashboard exists to separate.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 36,
+      "defect": "escape-hatch-needed",
+      "intent": "Extract the governing-law seat from MSA clauses to flag non-US contracts for outside counsel.",
+      "state": "Section 14.2 Governing Law. This Agreement, and any dispute, claim, or obligation arising out of or in connection with it, shall be governed by and construed in accordance with the laws of England and Wales, without regard to its conflict-of-law provisions.",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this clause seat the governing law somewhere other than the United States?",
+        "criteria": {
+          "true": "The clause names a governing jurisdiction that is not a US state or US federal law",
+          "false": "The clause names a US state or US federal law, names no jurisdiction at all, or names both a US and a non-US jurisdiction without a single controlling one"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The false branch explicitly absorbs the silent-clause and split-jurisdiction cases that would otherwise be the escape hatch, so every realistic clause lands cleanly on one side.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 37,
+      "defect": "escape-hatch-needed",
+      "intent": "Band an intake blood-pressure reading so the nurse queue sorts by urgency.",
+      "state": {
+        "encounter": "intake-3312",
+        "systolic_mmHg": 148,
+        "diastolic_mmHg": 91,
+        "method": "automated cuff, seated, second reading after 5 min rest",
+        "taken_at": "2026-09-19T09:41-05:00"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Place the recorded systolic reading in its clinical band.",
+        "criteria": [
+          "hypotensive: below 90 mmHg",
+          "normal: 90 to 119 mmHg",
+          "elevated: 120 to 139 mmHg",
+          "hypertensive: 140 to 179 mmHg",
+          "crisis: 180 mmHg or above"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The five bands partition the entire number line with no gap or overlap, so any recorded systolic value has exactly one home despite the options looking like a narrow hand-picked list.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 38,
+      "defect": "escape-hatch-needed",
+      "intent": "First-pass label for comments the automated filter escalated to the human review queue.",
+      "state": "Comment on a pasta recipe video, 11 reports, auto-filter score 0.62: \"lol my grandmother would slap you for putting cream in carbonara. this is a war crime and you should be tried at the Hague\"",
+      "question": {
+        "type": "choice",
+        "instructions": "Which policy, if any, does this comment violate?",
+        "criteria": {
+          "harassment": "Targets a specific person with insults, degradation, or sustained abuse",
+          "violent_threat": "Threatens, incites, or celebrates physical harm against a real person or group",
+          "neither": "Neither of the two policies above applies \u2014 including comments that violate some other policy, and comments that violate nothing"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The option list only names two policies out of a large policy book, but the third option is an explicit, correctly worded catch-all that absorbs every other comment, including this hyperbolic joke.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 39,
+      "defect": "escape-hatch-needed",
+      "intent": "Tell the release bot whether a feature branch needs a rebase before it can be queued for merge.",
+      "state": {
+        "branch": "feat/invoice-pdf",
+        "base": "main",
+        "commits_in_branch_not_in_base": 7,
+        "commits_in_base_not_in_branch": 23,
+        "merge_conflicts_detected": false,
+        "last_fetch": "2026-09-19T16:10Z"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "State this branch's position relative to main.",
+        "criteria": {
+          "in_sync": "Neither side has a commit the other lacks",
+          "ahead_only": "The branch has commits main lacks, and main has none the branch lacks",
+          "behind_only": "Main has commits the branch lacks, and the branch has none main lacks",
+          "diverged": "Each side has at least one commit the other lacks"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The four options are the complete truth table over the two commit-difference counts being zero or nonzero, so no pair of branches can fall outside them.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 40,
+      "defect": "escape-hatch-needed",
+      "intent": "Flag expense reports whose line items don't reconcile before they reach an approver.",
+      "state": {
+        "report_id": "EXP-2209",
+        "currency": "USD",
+        "stated_total": "1,284.00",
+        "line_items": [
+          {
+            "desc": "SFO-AUS roundtrip",
+            "amt": "612.40"
+          },
+          {
+            "desc": "Hotel, 2 nights",
+            "amt": "498.00"
+          },
+          {
+            "desc": "Airport parking",
+            "amt": "64.00"
+          },
+          {
+            "desc": "Client dinner (4)",
+            "amt": "109.60"
+          }
+        ]
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Compare the sum of the line items to the total the submitter stated.",
+        "criteria": {
+          "equal": "The line items sum exactly to the stated total",
+          "sum_exceeds_total": "The line items sum to more than the stated total",
+          "sum_below_total": "The line items sum to less than the stated total",
+          "not_comparable": "The stated total is missing, or at least one line amount is missing, unparseable, or in a different currency"
+        }
+      },
+      "has_defect": false,
+      "rationale": "Equal, greater, and less exhaust the comparison of two numbers, and the fourth option covers the only realistic way the comparison can fail to exist at all.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 41,
+      "defect": "degree-as-noul",
+      "intent": "Triage nurse queue: decide which self-serve intakes get a same-day callback.",
+      "state": {
+        "patient_age": 41,
+        "chief_complaint": "lower back pain",
+        "intake_text": "Started Saturday after moving boxes. Worse standing up or twisting. Ibuprofen helps for a couple of hours. No numbness, no fever, bladder normal. Missed one day of work."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this patient's pain is severe.",
+        "criteria": {
+          "true": "the pain is severe",
+          "false": "the pain is mild"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Pain severity is a continuum and the question names no cutoff, so a true/false probability conflates 'probably moderate' with 'uncertain between mild and severe'.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 42,
+      "defect": "degree-as-noul",
+      "intent": "PR bot decides whether to demand a second reviewer before merge.",
+      "state": {
+        "pr_title": "Rotate session secrets on password change",
+        "files_changed": 14,
+        "additions": 380,
+        "deletions": 62,
+        "touches": [
+          "auth/middleware.go",
+          "session/store.go"
+        ],
+        "tests_added": 0,
+        "author_merged_prs_in_repo": 3
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this pull request is risky.",
+        "criteria": {
+          "true": "the PR is risky",
+          "false": "the PR is safe"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Risk is an amount, not a condition; the yes/no collapses 'moderately risky, confidently' and 'maybe very risky' into the same number.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": false
+    },
+    {
+      "id": 43,
+      "defect": "degree-as-noul",
+      "intent": "Recruiter screen: shortlist applicants for a senior platform opening.",
+      "state": {
+        "role": "Senior Platform Engineer \u2014 requires 5+ yrs, production Kubernetes, Terraform",
+        "candidate": "4 yrs backend Go at a 30-person fintech; led the Postgres 12->15 migration; writes Terraform daily; no production Kubernetes, only minikube side projects; CS degree 2022"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this candidate is a strong fit for the role.",
+        "criteria": {
+          "true": "strong fit",
+          "false": "weak fit"
+        }
+      },
+      "has_defect": true,
+      "rationale": "'Strong fit' asks how well the candidate matches, a degree, and the true/false pair leaves the whole middle of the scale with nowhere to go.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 44,
+      "defect": "degree-as-noul",
+      "intent": "Freight desk picks a carrier for a recurring lane from scorecard data.",
+      "state": {
+        "carrier": "Midland Freight Systems",
+        "lane": "Chicago -> Dallas",
+        "loads_last_90d": 112,
+        "late_deliveries": 8,
+        "damage_claims": 2,
+        "tender_acceptance": "87%",
+        "invoice_variance_vs_quote": "+1.9%"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this carrier is reliable on this lane.",
+        "criteria": {
+          "true": "reliable",
+          "false": "unreliable"
+        }
+      },
+      "has_defect": true,
+      "rationale": "Reliability here is a rating over the scorecard, not a stated threshold the numbers can be tested against, so the boolean is standing in for a score.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": false
+    },
+    {
+      "id": 45,
+      "defect": "degree-as-noul",
+      "intent": "Marketplace Q&A moderation: auto-hide comments before a human review.",
+      "state": {
+        "surface": "listing Q&A thread",
+        "comment": "lol whoever wrote this listing must be brain dead \u2014 worst seller on this whole site, don't waste your money on this junk",
+        "reports": 1,
+        "author_account_age_days": 412
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this comment is highly toxic.",
+        "criteria": {
+          "true": "highly toxic",
+          "false": "not very toxic"
+        }
+      },
+      "has_defect": true,
+      "rationale": "'Highly toxic' vs 'not very toxic' is a position on a toxicity scale, so the probability ends up encoding intensity rather than uncertainty.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 46,
+      "defect": "degree-as-noul",
+      "intent": "Refund bot: auto-approve returns that clear the published policy without an agent.",
+      "state": {
+        "order_total": "$38.40",
+        "item": "running shoes, unopened per buyer photos",
+        "delivered": "6 days ago",
+        "buyer_reason": "ordered the wrong size",
+        "policy": "auto-approve refunds under $50 for unopened items returned within 30 days of delivery"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this refund qualifies for auto-approval under the stated policy.",
+        "criteria": {
+          "true": "it meets every condition in the policy",
+          "false": "it fails at least one condition"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The dollar figure and the 30-day window are fixed thresholds in a policy, so the several clauses resolve to one crisp yes/no and the probability expresses real uncertainty (is 'unopened per photos' good enough?), not an amount.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 47,
+      "defect": "degree-as-noul",
+      "intent": "AP inbox parser: route invoices that are missing fields to a human keyer.",
+      "state": {
+        "source": "AP inbox OCR",
+        "text": "NORTHWIND SUPPLY CO | Invoice # NW-20416 | Date 09/02/2026 | Terms Net 30 | Ship To: Dock B | Lines: 4 pallets corrugate, 1 pallet stretch film | Remit to: PO Box 4471 | Balance forward: see attached statement"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether the invoice states a total amount due.",
+        "criteria": {
+          "true": "a total amount due appears on the document",
+          "false": "no total amount due appears"
+        }
+      },
+      "has_defect": false,
+      "rationale": "It asks whether a quantity is present, not how large one is; the answer is a fact about the document and the uncertainty is only over noisy OCR.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 48,
+      "defect": "degree-as-noul",
+      "intent": "Contract triage: flag MSAs whose liability terms need counsel review.",
+      "state": "Clause 11.2: \"In no event shall either party's aggregate liability arising out of this Agreement exceed the fees paid or payable by Customer in the twelve (12) months preceding the claim, except for breaches of Section 9 (Confidentiality) and a party's indemnification obligations.\"",
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this clause places a monetary cap on aggregate liability.",
+        "criteria": {
+          "true": "aggregate liability is capped at a stated sum or formula",
+          "false": "liability is left uncapped"
+        }
+      },
+      "has_defect": false,
+      "rationale": "The subject is the existence of a cap, not its size; 'twelve months of fees' is quoted only as the cap's formula, so the yes/no is a genuine condition.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 49,
+      "defect": "degree-as-noul",
+      "intent": "Support ops: alert the duty manager when an enterprise ticket misses first-response SLA.",
+      "state": {
+        "ticket": "ENT-7742",
+        "opened": "2026-09-18 14:02 UTC (Friday)",
+        "first_agent_reply": "2026-09-21 10:41 UTC (Monday)",
+        "plan": "Enterprise \u2014 first response within 8 business hours",
+        "business_hours": "09:00-17:00 UTC, Mon-Fri, excluding weekends"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether the first response breached the plan's first-response SLA.",
+        "criteria": {
+          "true": "the first reply came after the SLA deadline",
+          "false": "the first reply came within the SLA"
+        }
+      },
+      "has_defect": false,
+      "rationale": "Every number is an input to one comparison against a contractual deadline; the output is a breach or it isn't, with the uncertainty sitting in the business-hours arithmetic.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 50,
+      "defect": "degree-as-noul",
+      "intent": "On-call triage: rank overnight alerts so the pager only fires on real customer pain.",
+      "state": {
+        "service": "checkout-api",
+        "p99_latency": "2.4s (7-day baseline 380ms)",
+        "duration": "11 minutes",
+        "error_rate": "0.4%",
+        "failed_checkouts": 0,
+        "pods": "1 of 6 in CrashLoopBackOff"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how severe this incident is for customers right now.",
+        "criteria": [
+          "no customer-visible impact",
+          "slightly slower for a few users",
+          "checkout is noticeably slow for many users",
+          "some checkouts are failing",
+          "checkout is unusable for most users"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "This does ask a degree, and it is posed as a score with ordered levels \u2014 the correct shape \u2014 so there is no boolean being asked to carry an amount.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 51,
+      "defect": "levels-unordered",
+      "intent": "Flag return requests that look like serial refund abuse before the auto-approve job runs.",
+      "state": {
+        "customer_id": "c_88214",
+        "account_age_days": 610,
+        "lifetime_orders": 41,
+        "returns_last_90d": 9,
+        "return_rate": "22% vs 4% store average",
+        "current_request": "returning 3 of 4 items from order A-77310 ($612) as 'not as described'",
+        "photos_attached": false,
+        "address_flags": "3 separate accounts ship to this address"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how strongly this return request indicates refund abuse.",
+        "criteria": [
+          "some risk signals present",
+          "no risk signals present",
+          "clear, established abuse pattern",
+          "strong risk signals present"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The four levels sit on one dimension but are shuffled \u2014 'some' comes before 'none', and 'clear pattern' before 'strong signals' \u2014 so there is no least-to-most ladder.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 52,
+      "defect": "levels-unordered",
+      "intent": "Triage flaky tests in CI so the platform team knows which ones to quarantine first.",
+      "state": {
+        "test": "checkout_flow_spec.rb:collects_tax",
+        "runs_last_30d": 380,
+        "failures_last_30d": 14,
+        "pattern": "fails only on the arm64 runner pool, always on the run right after the billing fixture seeds",
+        "blocks_merge": true,
+        "owner": "payments"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how bad this flaky test is for the team.",
+        "criteria": [
+          "fails less than once a week",
+          "fails only on ARM runners",
+          "fails on most runs",
+          "fails intermittently because of a shared fixture"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "Two of the levels describe failure frequency and two describe failure cause, so the levels do not lie on a single dimension at all.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 53,
+      "defect": "levels-unordered",
+      "intent": "Route shipment exceptions to the right queue: auto-close, agent follow-up, or claims.",
+      "state": {
+        "shipment": "SH-40921",
+        "customer": "Northwind Clinic",
+        "promised": "2026-09-18",
+        "status": "carrier scan 'damaged - repackaged' 09-17, delivered 09-20",
+        "contents": "refrigerated reagents; cold chain broken ~6h",
+        "claim_filed": false
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate the severity of this shipment exception for the customer.",
+        "criteria": [
+          "delayed 2-3 days",
+          "delivered on time and intact",
+          "lost in transit",
+          "delayed under 24 hours",
+          "damaged on arrival"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "Severity jumps around \u2014 a 2-3 day delay is listed before the clean outcome, and total loss sits in the middle of the list \u2014 so the levels are not in one consistent order.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 54,
+      "defect": "levels-unordered",
+      "intent": "Decide whether a reported post gets a warning, a removal, or a ban.",
+      "state": "Reported post in r/citycouncil: \"Whoever keeps parking across the bike lane on 4th should have their tires slashed. I'm not doing it but someone will.\" 12 reports in 3 hours. Author has 2 prior warnings for harassment, no prior bans, account 4 years old.",
+      "question": {
+        "type": "score",
+        "instructions": "Rate how severely this post violates the community guidelines.",
+        "criteria": [
+          "borderline \u2014 reasonable reviewers would disagree",
+          "clearly within the rules",
+          "egregious \u2014 ban-worthy on its own",
+          "clearly violating"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The ladder starts mid-scale, drops to the bottom, jumps to the top and then steps back down, so it is non-monotonic.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 55,
+      "defect": "levels-unordered",
+      "intent": "Produce a calibrated performance rating for a mid-cycle review packet.",
+      "state": {
+        "engineer": "L4 backend, 3rd cycle",
+        "delivery": "shipped the payments migration a sprint early; 2 sev-2 incidents attributable to it",
+        "peer_feedback": "3 of 5 reviewers cite dismissive code-review comments",
+        "manager_note": "strongest delivery on the team, weakest collaboration"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate this engineer's overall performance for the review cycle.",
+        "criteria": [
+          "met expectations",
+          "exceeded expectations on delivery but with open peer-feedback concerns",
+          "did not meet expectations",
+          "exceeded expectations"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "'Did not meet' appears after two higher levels, and the second level mixes a delivery rating with a separate collaboration caveat, so the levels neither ascend nor share one axis.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 56,
+      "defect": "levels-unordered",
+      "intent": "Assign an operational severity to an inbound enterprise incident so paging and SLA clocks are right.",
+      "state": {
+        "ticket": "SUP-19447",
+        "account": "Meridian Freight (enterprise, 240 seats)",
+        "report": "SSO login returns 500 for all users since 08:10 UTC; local password login still works for the 6 admins",
+        "affected": "234 of 240 seats",
+        "workaround": "admins can issue temporary passwords manually, ~4 min per user"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate the operational severity of this customer-reported incident.",
+        "criteria": [
+          "Cosmetic: no functional impact, nothing to work around",
+          "Minor: a non-critical feature is degraded for some users and a documented self-serve workaround exists",
+          "Major: a core workflow is broken for many users and the only workaround is manual and slow",
+          "Critical: the product is unusable for every user on the account and no workaround exists"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "Each level names both blast radius and workaround, which looks like two dimensions, but the two co-vary as a single standard severity axis that rises cleanly from cosmetic to critical.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 57,
+      "defect": "levels-unordered",
+      "intent": "Decide whether an AML alert is worth escalating to a SAR filing.",
+      "state": {
+        "alert": "AML-5521",
+        "account": "Tri-State Auto Detailing LLC",
+        "stated_profile": "cash-heavy retail, ~$40k/mo deposits",
+        "observed": "11 cash deposits of $8,900-$9,400 across 4 branches in 9 days, then one wire to a personal account out of state",
+        "explanation_on_file": "none"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how strongly the evidence supports filing a suspicious activity report.",
+        "criteria": [
+          "No anomaly: amounts, counterparties and timing all fit the stated business profile",
+          "One mild anomaly with a plausible innocent explanation already on file",
+          "Several anomalies that reinforce each other and have no documented explanation",
+          "A pattern matching a documented structuring typology with no legitimate business explanation"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The levels are long and multi-clause, but every clause serves one axis \u2014 strength of evidence \u2014 and that strength rises monotonically from none to typology-matching.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 58,
+      "defect": "levels-unordered",
+      "intent": "Rate redlined clauses in a vendor MSA so counsel knows which ones to fight over.",
+      "state": {
+        "doc": "Vendor MSA v4, clause 9.2 (indemnity)",
+        "vendor_redline": "caps vendor indemnity at 12 months of fees and carves out data-breach claims entirely",
+        "our_standard": "uncapped for data breach, 2x fees otherwise",
+        "deal": "$480k/yr; vendor processes customer PII"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how favorable this clause is to us, from least favorable to most favorable.",
+        "criteria": [
+          "Unacceptable: we would walk from the deal over this clause",
+          "Harmful but survivable if we add a liability cap elsewhere",
+          "Neutral: standard mutual terms, no edits needed",
+          "Favorable: shifts more risk to the vendor than market standard"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The scale crosses from harm to benefit, which can look like two opposed dimensions, but favorability is one bipolar axis and the levels ascend along it without a break.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 59,
+      "defect": "levels-unordered",
+      "intent": "Assign an ED triage acuity level from the walk-in intake note.",
+      "state": "Walk-in, 63F: chest pressure starting 40 minutes ago, radiating to the left jaw, diaphoretic. BP 158/94, HR 104, SpO2 96% on room air. History of type 2 diabetes and hypertension. Took one aspirin at home. Arrived by private car, currently ambulatory.",
+      "question": {
+        "type": "score",
+        "instructions": "Assign an ESI acuity level. The levels below run from least acute to most acute.",
+        "criteria": [
+          "ESI 5 \u2014 no resources expected (e.g. a simple rash)",
+          "ESI 4 \u2014 one resource expected",
+          "ESI 3 \u2014 two or more resources, vital signs stable",
+          "ESI 2 \u2014 high-risk presentation or severe distress",
+          "ESI 1 \u2014 requires immediate life-saving intervention"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The numbers count down, which looks reversed, but ESI numbering is inverse by definition and acuity rises consistently from the first level to the last.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 60,
+      "defect": "levels-unordered",
+      "intent": "Prioritize a tenant maintenance request against the on-call vendor's queue.",
+      "state": {
+        "unit": "312, Cedar Court",
+        "reported": "2026-09-20 21:40",
+        "tenant_note": "no hot water at the kitchen or bathroom taps since yesterday evening; radiators still work",
+        "building": "shared boiler, 18 units, 4 other tenants reported the same",
+        "overnight_low": "11C"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how much this maintenance issue affects the unit's habitability.",
+        "criteria": [
+          "Cosmetic \u2014 scuffed baseboard paint in a hallway",
+          "Inconvenient \u2014 one of two bathrooms has a slow-draining sink",
+          "Major \u2014 no hot water at any fixture",
+          "Uninhabitable \u2014 no heat with overnight lows below freezing, or an active water leak"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "Each level names a different building system, which can look like separate dimensions, but all four are examples on the single axis of habitability impact and they escalate in order.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 61,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Gate whether a new-patient intake packet is complete enough to book without a staff callback.",
+      "state": {
+        "patient_status": "new",
+        "dob": "1984-03-11",
+        "insurance_member_id": "BCBS TX 774-201-9930",
+        "group_number": null,
+        "reason_for_visit": "right-knee pain, 6 weeks",
+        "current_meds": "left blank",
+        "consent_form": "signed 2026-09-19",
+        "referral": "none on file; plan requires PCP referral for ortho"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this intake packet complete enough to book the appointment without a staff callback?",
+        "criteria": {
+          "true": "The patient has been seen at this clinic within the last 12 months.",
+          "false": "This is the patient's first visit to the clinic."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question asks about packet completeness but both descriptions describe an unrelated property (returning vs. new patient), so answering by the descriptions answers a different question.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 62,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Decide removal of a reported comment under the harassment policy.",
+      "state": "Reported comment on a city-politics forum: 'This council member's transit plan is garbage math \u2014 he clearly never read the ridership study, and anyone defending it isn't paying attention.' Reporter selected: harassment. Account is 3 years old with no prior strikes.",
+      "question": {
+        "type": "noul",
+        "instructions": "Should this comment be removed under the harassment policy?",
+        "criteria": {
+          "true": "Leave it up \u2014 it attacks an argument rather than a person, and names no private individual.",
+          "false": "Take it down; it targets a specific user with sustained personal insults."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The descriptions are inverted: the 'true' text describes a leave-up decision and the 'false' text describes a removal, the opposite of what the question's yes/no means.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 63,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Attribute a late delivery to a root cause for the weekly carrier scorecard.",
+      "state": {
+        "shipment": "SH-44921 Austin -> Reno",
+        "promised": "2026-09-16",
+        "delivered": "2026-09-19",
+        "scans": "picked 09/12 14:02, label created 09/12 14:40, first carrier scan 09/15 09:11, out for delivery 09/19 07:50",
+        "carrier": "OnTrac",
+        "notes": "no weather advisories; address validated at checkout"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Pick the root cause of this shipment's late delivery.",
+        "criteria": {
+          "carrier_delay": "Email the customer a revised ETA and issue a $10 store credit.",
+          "warehouse_pick_delay": "Raise it with the 3PL account manager on the weekly call.",
+          "bad_address": "Open a support ticket to confirm the address with the customer.",
+          "weather_hold": "No action needed; the SLA clock pauses automatically."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question asks which cause applies, but each description specifies the remediation step to take rather than what the cause means, so the descriptions never let you pick a cause.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 64,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Score fraud likelihood on a flagged card authorization for the review queue.",
+      "state": {
+        "card": "****4417",
+        "amount": "$412.60",
+        "merchant": "consumer electronics, Miami FL",
+        "billing_home": "Boise ID",
+        "device": "first seen 6 minutes ago",
+        "prior_24h": "3 declines across 3 merchants, then this approval",
+        "avs": "zip mismatch",
+        "account_age": "5 years"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how likely this authorization is to be fraudulent, from least likely to most likely.",
+        "criteria": [
+          "Almost certainly fraud \u2014 card tested across several merchants within minutes",
+          "Strong fraud signals \u2014 brand-new device plus billing mismatch",
+          "Mixed signals \u2014 some anomalies, some familiar behavior",
+          "Probably legitimate \u2014 known device, usual merchant category",
+          "Clearly legitimate \u2014 recurring charge the cardholder has paid for over a year"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The instructions order the scale least-to-most likely while the level descriptions run most-to-least, so the top of the scale describes the opposite of what was asked.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 65,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Screen a candidate against the technical bar for a senior backend opening.",
+      "state": {
+        "role": "Senior Backend Engineer \u2014 Go, Postgres, production on-call",
+        "candidate": "7 yrs total; 4 yrs Go at a payments startup, owned schema migrations on a 2TB Postgres, led an on-call rotation",
+        "notice_period": "60 days",
+        "location": "Lisbon (UTC+1)",
+        "comp_expectation": "within band"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Does this candidate meet the technical bar for the Senior Backend Engineer role?",
+        "criteria": {
+          "true": "The candidate can start within 30 days and works in a time zone that overlaps the team by at least four hours.",
+          "false": "The candidate needs more than 30 days' notice, or sits outside the overlap window."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question is about technical fit but the descriptions define availability and time-zone overlap, so a technically strong candidate would be marked false for an unrelated reason.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 66,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Decide whether an auto-refund macro may fire on a support ticket without an agent.",
+      "state": "Ticket #48120 \u2014 order delivered 3 days ago. Customer: 'box showed up already opened and two of the four mugs are gone.' Refund requested: $38.99. Order history: no prior refunds, no chargeback on file, first contact on this order, single message in thread.",
+      "question": {
+        "type": "noul",
+        "instructions": "Should this ticket be held back from the automatic refund flow?",
+        "criteria": {
+          "true": "Something in the thread makes the automatic refund wrong to send right now \u2014 an open chargeback, a refund already issued on this order, or an amount above the $75 macro ceiling.",
+          "false": "Nothing in the thread blocks it; the macro can send the refund as written."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The descriptions never repeat the phrase 'held back' and instead enumerate blockers, which reads at a glance like a different question, but 'a blocker exists' is exactly the yes case and 'no blocker' exactly the no case.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 67,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Classify a return request into a reason category that drives downstream routing.",
+      "state": "Return message: 'Ordered the walnut cutting board 18x12; what arrived is the bamboo one and it's a different size. Box was fine, item isn't damaged, it's just not what I picked.' Order line: WB-1812-WAL. Photo shows BB-1410-BAM.",
+      "question": {
+        "type": "choice",
+        "instructions": "Which return-reason category best fits this customer's message?",
+        "criteria": {
+          "wrong_item_sent": "A different SKU than the one ordered arrived; these go to the fulfillment audit queue.",
+          "damaged_in_transit": "The correct item arrived broken, crushed, or leaking; these go to the carrier claims queue.",
+          "sizing_issue": "The correct item arrived intact but does not fit; these go to standard returns.",
+          "changed_mind": "No defect or error stated, the customer simply no longer wants it; standard returns with a restocking fee."
+        }
+      },
+      "has_defect": false,
+      "rationale": "Each description trails a routing consequence, which can look like it describes something other than the reason, but every description leads with the defining condition for that category.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 68,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Grade how well an NDA's assignment terms support survival through the counterparty's acquisition.",
+      "state": "Mutual NDA (2024); counterparty is in acquisition talks. \u00a79.2: 'Neither party may assign this Agreement without the other's prior written consent, except that either party may assign to a successor in a merger or sale of substantially all assets upon written notice.' No change-of-control termination clause appears elsewhere.",
+      "question": {
+        "type": "score",
+        "instructions": "Rate how well this NDA's assignment terms support the agreement surviving the counterparty's acquisition, weakest support first.",
+        "criteria": [
+          "The agreement terminates automatically on a change of control.",
+          "Assignment is barred outright, with no successor carve-out.",
+          "Assignment requires our prior written consent, with no deemed-consent provision.",
+          "Assignment to a successor in a merger is permitted on written notice to us.",
+          "The agreement expressly binds successors and assigns, change of control included."
+        ]
+      },
+      "has_defect": false,
+      "rationale": "No level uses a strength word, so the scale looks like it describes clause text rather than the asked-about strength, but the clause facts are ordered exactly weakest-to-strongest support as the instructions state.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 69,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Decide whether a flaky CI test can be quarantined until someone fixes it.",
+      "state": {
+        "test": "checkout_test.py::test_cart_totals_with_promo",
+        "last_50_ci_runs": "7 failures on the same assertion, 5 of them on commits that touched nothing nearby",
+        "local": "passes 20/20",
+        "suspect": "seeds two promos in the same second; ordering by created_at is nondeterministic",
+        "other_coverage": "promo stacking also covered by test_promo_stack_integration"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Can this test be quarantined (skipped in CI) until someone fixes it?",
+        "criteria": {
+          "true": "The failures are not tied to a code change, and nothing on a payment or auth path loses its only coverage if this test stops running.",
+          "false": "The failures track a real regression, or this is the only test covering a payment or auth path."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The 'true' description is written entirely in negations ('are not tied', 'nothing loses'), which superficially reads like an inverted answer, but it states the conditions under which quarantining is in fact safe.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 70,
+      "defect": "criteria-contradict-instructions",
+      "intent": "Triage urgency of a first-notice-of-loss report so the adjuster queue is ordered correctly.",
+      "state": "FNOL notes: kitchen fire 2026-09-20 22:40, fire department on scene, no injuries reported. Family staying with relatives tonight; policy carries $2k/mo additional living expense. Home has no power and the back door was forced by responders and left unsecured. Policyholder is asking about a hotel.",
+      "question": {
+        "type": "score",
+        "instructions": "Rate the urgency of this loss report, least urgent first.",
+        "criteria": [
+          "Documentation only \u2014 no coverage decision needed this week",
+          "Routine \u2014 adjuster contact within 2 business days",
+          "Elevated \u2014 adjuster contact within 8 business hours; property unsecured or rental/lodging pending",
+          "Emergency \u2014 contact within 1 hour; home uninhabitable or someone was injured"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The levels are phrased as contact deadlines rather than urgency adjectives, which a careless grader may read as measuring SLA instead of urgency, but the deadlines are the operational definition of urgency and run least to most as instructed.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "wellposed",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Lint your jev requests before they come back confidently wrong.",
   "type": "module",
   "bin": {
@@ -21,7 +21,8 @@
   "scripts": {
     "test": "node --test skills/wellposed/eval/",
     "eval": "node skills/wellposed/eval/agreement.mjs",
-    "lint:example": "node skills/wellposed/scripts/wellposed.mjs lint skills/wellposed/examples/support-ticket.json"
+    "lint:example": "node skills/wellposed/scripts/wellposed.mjs lint skills/wellposed/examples/support-ticket.json",
+    "eval:semantic": "node skills/wellposed/eval/semantic-agreement.mjs"
   },
   "keywords": [
     "typesafe",
