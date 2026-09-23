@@ -4,6 +4,10 @@
 
 [![npm](https://img.shields.io/npm/v/wellposed)](https://www.npmjs.com/package/wellposed) [![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+Offline linter and agent skill for jev requests: 40 structural checks with no model call (missing
+none-of-the-above options, broken state paths, wrong criteria shapes), plus jev-on-jev checks for what
+structure cannot decide, with labelled corpora that score both layers.
+
 ```
   question "route_team"
     warn   Choice "route_team" has no "other"/"none of the above" option. If an input fits none of
