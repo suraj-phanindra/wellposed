@@ -441,7 +441,7 @@ export function lintQuestion(id, q, opts = {}) {
 
       // The headline rule. Measured: 0 of 11 generated Choices had one, and a
       // Choice without one answered a not-covered input at confidence 1.00.
-      const descs = Array.isArray(q.criteria) ? [] : Object.values(q.criteria).map(textOf);
+      const descs = Array.isArray(q.criteria) ? [] : Object.values(q.criteria).map((d) => textOf(d));
       const hasHatch = opts.some((o) => ESCAPE_HATCH.test(normalizeOption(o)))
         || descs.some((d) => ESCAPE_HATCH_DESC.test(d));
       if (!hasHatch && opts.length >= 2) {

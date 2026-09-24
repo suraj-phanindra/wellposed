@@ -558,3 +558,13 @@ test('the CLI honours a forbidden list and rejects a malformed one', async () =>
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a Choice whose option descriptions are objects is linted, not crashed on', () => {
+  // Found in public jev code: {"what": ..., "not_for": ..., "examples": [...]} per option.
+  const q = { type: 'choice', instructions: 'What does `visitor` want?',
+    criteria: { delivery: { what: 'Dropping something off', examples: ['a parcel'] },
+                sales: { what: 'Selling something', not_for: 'Deliveries' } } };
+  assert.deepEqual(lintQuestion('intent', q).map((f) => f.rule), ['choice/no-escape-hatch']);
+  const hatch = { ...q, criteria: { ...q.criteria, other: { what: 'None of the above' } } };
+  assert.equal(lintQuestion('intent', hatch).some((f) => f.rule === 'choice/no-escape-hatch'), false);
+});
