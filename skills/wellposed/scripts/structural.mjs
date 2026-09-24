@@ -252,7 +252,7 @@ export const RULES = {
   'score/criteria-wrong-type': { severity: 'error', source: 'docs: primitives/score' },
   'score/duplicate-levels': { severity: 'error', source: 'splits probability across identical rungs' },
   'score/missing-criteria': { severity: 'error', source: 'docs: primitives/score' },
-  'score/too-few-levels': { severity: 'error', source: 'docs: primitives/score' },
+  'score/too-few-levels': { severity: 'error', source: 'verified: live API returns level 0 at confidence 1.00; the JS SDK throws' },
   'score/too-many-levels': { severity: 'error', source: 'verified: live API 400 (max 10)' },
   'state/broken-path': { severity: 'error', source: 'deterministic: path does not resolve' },
   'state/forbidden-path': { severity: 'error', source: 'your config: deny-listed field names or paths' },
@@ -502,7 +502,7 @@ export function lintQuestion(id, q, opts = {}) {
         }
         if (levels.length < 2) {
           out.push(finding('score/too-few-levels', 'error',
-            `Score "${id}" has ${levels.length} level(s); a Score needs at least 2 ordered levels.`, at));
+            `Score "${id}" has ${levels.length} level(s). jev accepts it and answers level 0 at confidence 1.00 every time, so the answer is predetermined; the JS SDK refuses to send it. A Score needs at least 2 ordered levels.`, at));
         }
         // Docs: "Score levels must describe concrete situations and stand on
         // their own." Bare adjectives ("weak", "okay") do not.
