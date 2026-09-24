@@ -4,3 +4,11 @@ node_modules/
 .ts-probe/
 skills/wellposed/eval/semantic-raw.json
 .regen-rules.py
+# Third-party code and per-repo results stay local; only the scripts and the
+# aggregate report are committed.
+research/*
+!research/wild/
+research/wild/*
+!research/wild/*.py
+!research/wild/*.mjs
+!research/wild/README.md
