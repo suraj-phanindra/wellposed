@@ -1,6 +1,6 @@
 {
   "name": "wellposed",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Turn intent into a well-posed TypeSafe System One (jev) request, then lint it before sending.",
   "author": {
     "name": "Suraj Phanindra",

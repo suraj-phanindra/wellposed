@@ -59,8 +59,37 @@ export const CONCURRENCY = 6;
  * Each check: which primitives it applies to, the yes/no question to ask about
  * the question under review, and which answer indicates a defect.
  */
+const hasCriteria = (q) => q?.criteria != null
+  && (typeof q.criteria !== 'object' || Object.keys(q.criteria).length > 0);
+
+/**
+ * Retired ids that still work in a config file. Setting one sets every check it
+ * was split into, unless that check is also set explicitly.
+ */
+export const ALIASES = {
+  'semantic/criteria-contradict-instructions': [
+    'semantic/criteria-off-topic', 'semantic/criteria-polarity-inverted', 'semantic/levels-reversed',
+  ],
+};
+export function expandAliases(rules) {
+  if (!rules) return rules;
+  const out = { ...rules };
+  for (const [old, now] of Object.entries(ALIASES)) {
+    if (!(old in rules)) continue;
+    for (const id of now) if (!(id in rules)) out[id] = rules[old];
+    delete out[old];
+  }
+  return out;
+}
+
 export const CHECKS = [
   {
+    // Restored to the v0.5.0 wording on purpose. A structured rewrite with
+    // {question, inspect, focus} and {what, examples} caught the one crossed-option
+    // miss (#5: 0.37 -> 0.78) but lost three plain "X and Y" positives (#1, #2, #4
+    // fell to 0.37-0.47): its "this is still one judgment" example was a
+    // multi-clause question, and that moved the boundary. 4/5 -> 2/5. Examples
+    // near the boundary pull true positives across it.
     id: 'semantic/bundled-judgments',
     applies: ['noul', 'choice', 'score'],
     defectWhen: false, // a NO to "is this exactly one judgment" is the defect
@@ -164,20 +193,103 @@ export const CHECKS = [
     fix: 'Reorder the levels so they run from least to most along one dimension.',
     doc: 'https://docs.typesafe.ai/primitives/score',
   },
+  // These three replace `semantic/criteria-contradict-instructions`, which asked
+  // one Noul to judge "a different property, OR an inverted meaning" — two
+  // judgments in one question, the defect this tool exists to flag. It was the
+  // weakest check (3/5), and a reversed Score scale fitted neither half (p=0.08).
   {
-    id: 'semantic/criteria-contradict-instructions',
+    id: 'semantic/criteria-off-topic',
     applies: ['noul', 'choice', 'score'],
     defectWhen: true,
-    instructions:
-      'Do `question.criteria` describe something DIFFERENT from what `question.instructions` asks about, or invert ' +
-      'its meaning — for example criteria where the true case describes a no?',
-    criteria: {
-      true: 'The criteria and the instructions ask for different things, or the mapping is inverted.',
-      false: 'The criteria read as a direct extension of the instructions.',
+    when: (q) => hasCriteria(q),
+    instructions: {
+      question: 'Do the descriptions in `question.criteria` define a DIFFERENT property from the one `question.instructions` asks about?',
+      inspect: 'question.instructions and question.criteria',
+      focus: 'Compare what is being judged, not how it is worded. Each description must say what the property ' +
+        'IS for that answer. One that describes only an action to take, or an outcome, without defining the ' +
+        'property, is off topic.',
     },
-    message: (p) => `has criteria that appear to contradict its instructions (P=${p.toFixed(2)})`,
-    fix: 'Align criteria with the instruction wording; jev-1.13 degrades when they disagree.',
+    criteria: {
+      true: {
+        what: 'Answering by the descriptions would decide some other property than the one asked about.',
+        examples: [
+          'Asks whether an invoice is overdue; the descriptions define whether the vendor is new',
+          'Asks for the language of a document; the options describe how long it is',
+        ],
+      },
+      false: {
+        what: 'Each description defines, refines, or gives the conditions for the property that was asked about.',
+        examples: [
+          'Asks whether a warranty claim is valid; the descriptions list what makes a claim valid or invalid',
+          'Asks for a document category; each option says what belongs in it',
+        ],
+      },
+    },
+    message: (p) => `has criteria that define a different property from the one its instructions ask about (P=${p.toFixed(2)})`,
+    fix: 'Rewrite the criteria so each one describes the property the instructions ask about — or ask about the property the criteria describe.',
     doc: 'https://docs.typesafe.ai/model-jaggedness/jev-1.13',
+  },
+  {
+    id: 'semantic/criteria-polarity-inverted',
+    applies: ['noul'],
+    defectWhen: true,
+    when: (q) => q?.criteria != null && typeof q.criteria === 'object' && q.criteria.true != null,
+    instructions: {
+      question: 'Does `question.criteria.true` describe the situation in which the answer to `question.instructions` is NO?',
+      inspect: 'question.instructions, question.criteria.true and question.criteria.false',
+      focus: 'Ignore negative wording on its own: a description can be written entirely in negations and still ' +
+        'describe the yes case. Judge only which answer the true description corresponds to.',
+    },
+    criteria: {
+      true: {
+        what: 'The true description is the case where the question should be answered no, so the mapping is flipped.',
+        examples: [
+          'Asks whether an order should ship today; true describes holding it back',
+          'Asks whether a loan is approved; true describes the application being declined',
+        ],
+      },
+      false: {
+        what: 'The true description is the case where the question should be answered yes, however it is worded.',
+        examples: [
+          'Asks whether an account is dormant; true describes no logins for 90 days',
+          'Asks whether a column is safe to drop; true describes it having no readers and no writers',
+        ],
+      },
+    },
+    message: (p) => `has criteria.true describing the "no" case, so P(yes) means the opposite of what it seems (P=${p.toFixed(2)})`,
+    fix: 'Swap the true and false descriptions, or reword the instructions so a yes means what criteria.true describes.',
+    doc: 'https://docs.typesafe.ai/model-jaggedness/jev-1.13',
+  },
+  {
+    id: 'semantic/levels-reversed',
+    applies: ['score'],
+    defectWhen: true,
+    when: (q) => Array.isArray(q?.criteria) && q.criteria.length >= 2,
+    instructions: {
+      question: 'Do the levels in `question.criteria`, taken in the order listed, run in the OPPOSITE direction to the order `question.instructions` asks for?',
+      inspect: 'question.instructions and the order of question.criteria',
+      focus: 'Judge direction only. If the instructions state no order, answer no. A list that is jumbled rather ' +
+        'than reversed is a different problem: answer no for that too.',
+    },
+    criteria: {
+      true: {
+        what: 'The instructions ask for one direction and the listed levels run the other way.',
+        examples: [
+          'Asks for the smallest impact first; the first level listed describes the largest impact',
+          'Asks to rate from lowest to highest risk; the list opens with the highest risk',
+        ],
+      },
+      false: {
+        what: 'The levels run in the stated direction, or the instructions state no direction.',
+        examples: [
+          'Asks for the smallest impact first; the first level describes the smallest impact',
+          'Asks how serious an issue is without stating an order',
+        ],
+      },
+    },
+    message: (p) => `has levels running opposite to the direction its instructions state, so the score index reads backwards (P=${p.toFixed(2)})`,
+    fix: 'Reverse the level list so it runs in the direction the instructions state, or change the instructions to match.',
+    doc: 'https://docs.typesafe.ai/primitives/score',
   },
 ];
 
@@ -188,7 +300,10 @@ export function buildReviewRequest(id, q, { state, model = DEFAULT_MODEL, struct
     && (!c.gatedOn || structuralRules.has(c.gatedOn))
     // `needsState` was declared and never read: a request with no state handed
     // the reviewer the string "null" and was billed for the answer anyway.
-    && (!c.needsState || (state != null && textOf(state).trim() !== '')));
+    && (!c.needsState || (state != null && textOf(state).trim() !== ''))
+    // A check that cannot apply to this question (e.g. polarity with no criteria)
+    // is not asked, so it is neither billed nor able to fire on nothing.
+    && (!c.when || c.when(q)));
   if (!checks.length) return { request: null, checks };
 
   // Six of the seven checks are about the QUESTION, so a long state is only
@@ -240,6 +355,7 @@ export async function semanticLint(req, opts = {}) {
   // findings alone never sees a confident "no defect" — which made an earlier
   // precision-vs-threshold sweep report 100% at every threshold by construction.
   const raw = [];
+  const models = new Set();
   const usage = { input_tokens: 0, output_tokens: 0 };
   let calls = 0;
 
@@ -274,6 +390,7 @@ export async function semanticLint(req, opts = {}) {
       err.code = 'SEMANTIC_SHAPE';
       throw err;
     }
+    if (json.model) models.add(json.model);
     usage.input_tokens += json.usage?.input_tokens ?? 0;
     usage.output_tokens += json.usage?.output_tokens ?? 0;
     const out = [];
@@ -293,6 +410,12 @@ export async function semanticLint(req, opts = {}) {
                    fix: c.fix, doc: c.doc });
       }
     }
+    // Both levels-reversed and levels-unordered can fire on one scale, and both are
+    // reported. An earlier version dropped levels-unordered whenever levels-reversed
+    // fired, to avoid a duplicate on clean reversals. The held-out set (#28) showed
+    // levels-reversed firing on a JUMBLED scale, where that policy hid the correct
+    // diagnosis and kept the wrong one. Two warnings is noise; a hidden right answer
+    // is worse.
     if (checks.length && answered === 0) {
       const err = new Error(`semantic lint: none of the ${checks.length} checks for "${id}" came back`);
       err.code = 'SEMANTIC_SHAPE';
@@ -301,6 +424,16 @@ export async function semanticLint(req, opts = {}) {
     return out;
   };
 
+  // One request per reviewed question, deliberately — although TypeSafe's fan-out
+  // guidance says to put everything in one request. Measured 2026-09-24 on 20
+  // corpus items, per-question vs ten reviews per call: batching saved only 14% of
+  // input tokens (the docs' ~12x comes from re-sending a LARGE shared state; a
+  // review state is small by design), scored verdicts were identical (19/20 each),
+  // but individual scores moved by up to 0.51 and 3 of 99 flipped at 0.50 — other
+  // questions in the same call leak into each answer, as the jaggedness page warns.
+  // Revisit for requests whose state is large: unanswerable-from-state gets the
+  // FULL state, so N questions over a long document send it N times.
+  //
   // A bounded pool: one request per question fired at once meant 300 questions
   // became 300 simultaneous connections.
   const queue = entries.map((e, i) => [i, e]);
@@ -319,5 +452,5 @@ export async function semanticLint(req, opts = {}) {
 
   // M13: `--config` overrides were threaded in here and silently dropped, so
   // turning a semantic rule off did nothing and said nothing.
-  return { findings: applyOverrides(findings, opts.rules), calls, usage, raw };
+  return { findings: applyOverrides(findings, expandAliases(opts.rules)), calls, usage, raw, models: [...models] };
 }

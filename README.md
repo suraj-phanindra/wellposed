@@ -159,7 +159,8 @@ Some questions genuinely require judgment. Code can see that your Choice has no 
 option, but it can't know whether "none of these" is even *possible* for your data. That's a question
 about meaning.
 
-So for exactly those cases, wellposed asks jev about your question. Seven checks, each a simple yes/no:
+So for exactly those cases, wellposed asks jev about your question. Nine checks, each a simple yes/no,
+and each one judgment — the rule it enforces on you, it follows itself:
 
 - Is this really just one judgment, or several stuffed together?
 - Can this be answered from the data provided, or does it need outside knowledge?
@@ -167,9 +168,19 @@ So for exactly those cases, wellposed asks jev about your question. Seven checks
 - Is there a realistic input none of these options would cover?
 - Is this a rating question disguised as a yes/no?
 - Are these rating levels actually in order?
-- Do the criteria contradict the instructions?
+- Do the descriptions define a different property from the one the question asks about?
+- Does the "yes" description actually describe the "no" case?
+- Do the rating levels run in the opposite direction to the one the question states?
 
-This costs one API call per question and only runs when you ask for it (`--semantic`).
+The last three used to be one check that asked "do the criteria describe something different, **or**
+invert the meaning" — two judgments in one question, the exact thing wellposed exists to flag. It was the
+weakest check. Split into three, the reversed-scale case went from 0.08 to 0.96.
+
+This costs one API call per question and only runs when you ask for it (`--semantic`). TypeSafe's own
+guidance is to put everything in one request, and that was measured before being declined: batching ten
+reviews per call saved only 14% of tokens here, because the ~12x saving comes from re-sending a *large*
+shared state and a review's state is small. Meanwhile other questions in the same call moved individual
+answers by up to 0.51.
 
 **The two layers are deliberately different.** The free one is *aggressive* — it flags every Choice
 missing an escape hatch, including ones that are fine, because it can't know. The paid one is
@@ -210,21 +221,21 @@ Plus 48 unit tests. Three exist specifically because we sent those exact broken 
 API and recorded what it said.
 
 **The semantic layer has its own corpus**, added later than it should have been. 70 items, seven
-checks, five positives and five deliberately adversarial negatives each — questions that look like the
+defect families, five positives and five deliberately adversarial negatives each — questions that look like the
 defect but are actually fine. `npm run eval:semantic` scores it with one live jev call per item:
 
 ```
   check                            n   recall  precision  unsure
   --------------------------------------------------------------
   bundled-judgments               10      4/5        4/4       1
-  criteria-contradict-instructions  10      3/5        3/3       1
+  criteria-contradict-instructions  10      5/5        5/5       0
   degree-as-noul                  10      5/5        5/5       0
   escape-hatch-needed             10      5/5        5/5       1
   levels-unordered                10      5/5        5/5       0
   options-not-exclusive           10      5/5        5/5       0
   unanswerable-from-state         10      5/5        5/5       0
 
-  recall    32/35 = 91% [78-97%]      precision  32/32 = 100% [89-100%]
+  recall    34/35 = 97% [85-99%]      precision  34/34 = 100% [90-100%]
 ```
 
 The first run of this corpus scored 69%, and it found one check — `degree-as-noul` — at **0/5**. It had
@@ -240,9 +251,33 @@ construction. Re-measured with every answer recorded: no false alarms at any thr
 the first one at 0.30, and the closest negative sitting at 0.34 — 0.16 below the warn line. The
 threshold stands; the reason it stands is now something you can check with `--dump` then `--sweep`.
 
-The intervals are wide because the corpus is small: recall 91% [78–97%], precision 100% [89–100%],
-Wilson 95%. The headline numbers are point estimates from 35 positives and 35 negatives, and should be
-read that way.
+**Don't quote those numbers for the three new checks** — quote the held-out ones below. The new checks
+were designed after reading this corpus's five failures, and one was reworded after seeing a single test
+item move, so their 5/5 here can't be told apart from fitting five items.
+
+**Held-out validation.** A second set of 40 items was generated blind — by agents told the defect in
+plain English and forbidden from reading this repository — and scored exactly once. The decision rules
+were committed before the set was generated
+([`HOLDOUT-RULES.md`](skills/wellposed/eval/HOLDOUT-RULES.md)), and the set itself before it was scored:
+
+```
+  check                            n   recall  precision
+  -----------------------------------------------------
+  criteria-polarity-inverted      10      5/5        5/5
+  criteria-off-topic              10      4/5        4/4
+  levels-reversed                 10      4/5        4/5
+  bundled-judgments               10      3/5        3/3
+
+  recall    16/20 = 80% [58-92%]      precision  16/17 = 94% [73-99%]
+```
+
+All four clear the pre-registered bar, two of them exactly on it. The same checks scored 9/10 on the corpus
+they were designed against; 16/20 is the honest figure. `bundled-judgments` misses whenever the bundling
+lives in the options or criteria rather than the instructions — a 2x2 grid of shipping options, a "yes"
+description that ORs two unrelated conditions. That's a known, measured gap: a rewrite that also read the
+options caught those cases but lost more plain ones than it gained, so it was reverted.
+
+All intervals are Wilson 95%, and wide because the sets are small.
 
 ## Install
 
@@ -344,6 +379,11 @@ A working example ships at
   items (`source: adversarial-2026-09-18` in `corpus.json`) specifically so it can.
 - **The semantic layer ranks; it does not cleanly separate.** Clear defects scored 0.94–0.96, contested
   ones 0.60–0.74. Trust the high end, review the middle. Thresholds are tunable for a reason.
+- **Semantic precision is measured within each check's own family.** Every corpus item is labelled for
+  one defect only. When a check fires on an item written for a *different* defect — 26 times on the
+  tuning corpus, 20 on the held-out set — that cell has no label, so it is neither counted as right nor
+  wrong. Many look like real co-occurring defects (a Choice written to test overlapping options that
+  also has no "other"), but they are unverified. The harness lists them rather than hiding them.
 - **`choice/no-escape-hatch` over-flags by design.** Whether "none of these" is reachable is a question
   about meaning. If your option set really is exhaustive, turn the rule off.
 - **One label was corrected after the fact**, and the correction is recorded in

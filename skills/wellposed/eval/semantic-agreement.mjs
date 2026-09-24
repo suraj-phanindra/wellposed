@@ -22,10 +22,13 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { lintQuestion } from '../scripts/structural.mjs';
-import { semanticLint, CHECKS } from '../scripts/semantic.mjs';
+import { semanticLint, CHECKS, ALIASES } from '../scripts/semantic.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const CORPUS = join(here, 'semantic-corpus.json');
+// --corpus scores another file with the same shape — used for the held-out set,
+// which must never be merged into the corpus the checks were tuned on.
+const corpusArg = (() => { const a = process.argv.slice(2); const i = a.indexOf('--corpus'); return i >= 0 ? a[i + 1] : null; })();
+const CORPUS = corpusArg ? (corpusArg.startsWith('/') ? corpusArg : join(process.cwd(), corpusArg)) : join(here, 'semantic-corpus.json');
 const argv = process.argv.slice(2);
 const opt = (n, d) => {
   const i = argv.indexOf(`--${n}`);
@@ -89,7 +92,12 @@ let items = corpus.items;
 if (only) items = items.filter((i) => i.defect === only);
 items = items.slice(0, limit);
 
-const ruleFor = (defect) => `semantic/${defect}`;
+const rulesFor = (defect) => ALIASES[`semantic/${defect}`] ?? [`semantic/${defect}`];
+// Pinned, so the published numbers are tied to a model version. `jev-latest` is a
+// moving alias; the pinned id needs the full version ("jev-1.13" is rejected).
+const MODEL = opt('model', corpus.model_id ?? 'jev-latest');
+const served = new Set();
+const outOfFamily = [];
 const pad = (s, n) => String(s).padEnd(n);
 const lpad = (s, n) => String(s).padStart(n);
 
@@ -108,7 +116,7 @@ console.log(`\n  Scoring ${items.length} items against the semantic layer (1 jev
 
 for (const [n, it] of items.entries()) {
   const qid = `q${it.id}`;
-  const req = { model: 'jev-latest', state: it.state, questions: { [qid]: it.question } };
+  const req = { model: MODEL, state: it.state, questions: { [qid]: it.question } };
   // escape-hatch-needed only runs when the free structural rule already fired,
   // so the gate has to be reproduced here or that check never gets asked.
   const structural = new Set(
@@ -118,7 +126,8 @@ for (const [n, it] of items.entries()) {
   let findings = [];
   let cells = [];
   try {
-    const r = await semanticLint(req, { structuralByQuestion: new Map([[qid, structural]]) });
+    const r = await semanticLint(req, { model: MODEL, structuralByQuestion: new Map([[qid, structural]]) });
+    for (const m of r.models ?? []) served.add(m);
     findings = r.findings;
     cells = r.raw;
     calls += r.calls;
@@ -129,13 +138,22 @@ for (const [n, it] of items.entries()) {
     continue;
   }
 
-  const rule = ruleFor(it.defect);
-  const hit = findings.find((f) => f.rule === rule);
+  const rules = rulesFor(it.defect);
+  // With several candidate rules, the strongest one decides the item.
+  const hit = findings.filter((f) => rules.includes(f.rule))
+    .sort((a, b) => (b.pDefect ?? 0) - (a.pDefect ?? 0))[0];
+  // Any check firing on an item written to exhibit a DIFFERENT defect (or none)
+  // is a candidate false alarm the per-family score would never show.
+  for (const f of findings) {
+    if (f.severity === 'warn' && !rules.includes(f.rule)) outOfFamily.push([it, f]);
+  }
   // Take the probability from the raw cell, not from `hit`: a finding exists only
   // at or above LOW, so negatives would otherwise all be recorded as null.
-  const cell = cells.find((c) => c.rule === rule);
-  raw.push({ id: it.id, defect: it.defect, has_defect: it.has_defect,
-             asked: Boolean(cell), p: cell?.p ?? null, pDefect: cell?.pDefect ?? null });
+  const mine = cells.filter((c) => rules.includes(c.rule)).sort((a, b) => b.pDefect - a.pDefect);
+  const cell = mine[0];
+  raw.push({ id: it.id, defect: it.defect, has_defect: it.has_defect, asked: Boolean(cell),
+             p: cell?.p ?? null, pDefect: cell?.pDefect ?? null, rule: cell?.rule ?? null,
+             subChecks: Object.fromEntries(mine.map((c) => [c.rule, +c.pDefect.toFixed(3)])) });
   const fired = hit?.severity === 'warn';
   const uncertain = hit?.severity === 'info';
 
@@ -167,6 +185,19 @@ const pre = T.tp + T.fp ? T.tp / (T.tp + T.fp) : 0;
 console.log(`\n  recall    ${T.tp}/${T.tp + T.fn} = ${(100 * rec).toFixed(0)}%  95% CI ${ci(T.tp, T.tp + T.fn)}`);
 console.log(`  precision ${T.tp}/${T.tp + T.fp} = ${(100 * pre).toFixed(0)}%  95% CI ${ci(T.tp, T.tp + T.fp)}`);
 console.log(`  cost      ${calls} calls, ${usage.input_tokens.toLocaleString()} in / ${usage.output_tokens.toLocaleString()} out`);
+console.log(`  model     requested ${MODEL}, served ${[...served].join(', ') || '(unknown)'}`);
+if (outOfFamily.length) {
+  console.log(`\n  ${outOfFamily.length} warning(s) from a check on an item written for a different defect.`);
+  console.log('  These cells are UNLABELLED: each corpus item is labelled for one defect only, so a');
+  console.log('  warning here may be a real co-occurring defect or a false alarm. By check:');
+  const byRule = {};
+  for (const [, f] of outOfFamily) byRule[f.rule] = (byRule[f.rule] ?? 0) + 1;
+  for (const [r, n] of Object.entries(byRule).sort((a, b) => b[1] - a[1])) console.log(`    ${String(n).padStart(3)}  ${r}`);
+  console.log('  First few:');
+  for (const [it, f] of outOfFamily.slice(0, 15)) {
+    console.log(`    #${String(it.id).padEnd(3)} [${it.defect}${it.has_defect ? '' : ' / clean'}] ${f.rule} pDefect=${f.pDefect?.toFixed(2)}`);
+  }
+}
 
 if (misses.length) {
   console.log(`\n  ${misses.length} disagreement${misses.length > 1 ? 's' : ''}:`);

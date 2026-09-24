@@ -1719,5 +1719,7 @@
       "adjudicator_agreed": true,
       "adjudicator_confident": true
     }
-  ]
+  ],
+  "model_id": "jev-1.13.0",
+  "model_note": "The API rejects 'jev-1.13'; the pinnable id is 'jev-1.13.0'. /v1/models lists only the jev-latest and jev-preview aliases, so the pinned id is not discoverable there."
 }

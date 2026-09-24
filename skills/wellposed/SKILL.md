@@ -9,7 +9,7 @@ description: >
   TypeSafe.
 metadata:
   short-description: Write and lint jev requests that mean what you think they mean.
-  version: 0.5.0
+  version: 0.6.0
   homepage: https://github.com/suraj-phanindra/wellposed
 ---
 
@@ -56,9 +56,14 @@ jaggedness notes call this out, and unreferenced state fields are the cheapest s
 
 ### 2. Pick the primitive by what the answer means
 
-A request has exactly three top-level fields: `state`, `model` (`"jev-latest"`), and `questions` — a
+A request has exactly three top-level fields: `state`, `model` (`"jev-latest"`, or a pinned version — see below), and `questions` — a
 map from ids you choose to question objects. A complete worked request ships next to this file at
 `examples/support-ticket.json`.
+
+`jev-latest` is a moving alias. Once you have tuned thresholds against real answers, pin the model so a
+new release cannot quietly move them — and use the **full** version: `"jev-1.13.0"` works, `"jev-1.13"`
+is rejected with `Unknown model`, and `/v1/models` lists only the aliases, so the pinned id isn't
+discoverable there. The response's `model` field tells you which version actually served you.
 
 The three primitives take **different criteria shapes**, and the API rejects the wrong one outright:
 

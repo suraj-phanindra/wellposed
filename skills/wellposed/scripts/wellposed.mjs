@@ -11,7 +11,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { lintRequest, lintQuestion, RULES } from './structural.mjs';
-import { semanticLint, CHECKS, LOW, HIGH } from './semantic.mjs';
+import { semanticLint, CHECKS, LOW, HIGH, ALIASES } from './semantic.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ESC = String.fromCharCode(27);
@@ -200,6 +200,10 @@ async function main() {
     }
     // RULES holds the structural ids; the semantic ones live in CHECKS. Both
     // are listed by `wellposed rules`, so both must be configurable.
+    if (rule in ALIASES) {
+      console.error(yellow(`config: "${rule}" was split into ${ALIASES[rule].join(', ')}; applying "${sev}" to all of them`));
+      continue;
+    }
     if (!(rule in RULES) && !CHECKS.some((c) => c.id === rule)) {
       console.error(red(`config: unknown rule "${rule}". Run \`wellposed rules\` for the list.`));
       process.exit(2);

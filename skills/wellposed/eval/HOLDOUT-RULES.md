@@ -40,3 +40,43 @@ among the negatives that fire, and "60%" means at least 3 of 5.
   needs a new held-out set; this one is spent once it is scored.
 - No moving the threshold in response to held-out results.
 - The held-out file is never merged into the tuning corpus.
+
+---
+
+## Result — scored once, 2026-09-24, `jev-1.13.0`, warn above 0.50
+
+Rules above were committed in `e67f87e`; the unscored set in `e373cb8`. Neither
+was edited after scoring. Labeller agreement 40/40 (same-model self-consistency,
+not ground truth).
+
+| check | recall | precision | decision under the rules |
+|---|---|---|---|
+| `criteria-polarity-inverted` | 5/5 | 5/5 | keep as a warning |
+| `criteria-off-topic` | 4/5 | 4/4 | keep as a warning |
+| `levels-reversed` | 4/5 | 4/5 | keep as a warning (precision exactly 80%) |
+| `bundled-judgments` | 3/5 | 3/3 | keep as a warning (recall exactly 60%) |
+| **all four** | **16/20 = 80%** [58–92%] | **16/17 = 94%** [73–99%] | Wilson 95% |
+
+For comparison, the same checks scored 9/10 on the tuning corpus they were
+designed against. The held-out figure is the one to quote.
+
+### What the misses and the false alarm show
+
+- `levels-reversed` false alarm (#28): the scale is **jumbled**, not reversed, and
+  the check fired anyway. The question genuinely is broken — `levels-unordered`
+  is the right diagnosis. This exposed a reporting policy added the same day that
+  dropped `levels-unordered` whenever `levels-reversed` fired, which here hid the
+  correct warning. That policy was removed; it changes no scored number above.
+- `levels-reversed` miss (#23): a rubric listed Beginning → Exemplary while the
+  instructions said strongest first. `levels-unordered` still warned (0.61), so the
+  user is told something is wrong, with a less precise diagnosis.
+- `bundled-judgments` misses (#32, #33): in both, the bundling lives in the
+  **options or criteria**, not the instructions — a 2×2 grid of shipping options,
+  and a `true` description that ORs two unrelated conditions. The current wording
+  reads the instructions only. A structured rewrite that also read the options was
+  tried on the tuning corpus and lost more than it gained, so this is a known,
+  measured gap rather than an oversight.
+- `criteria-off-topic` miss (#5): options labelled with learning objectives whose
+  descriptions define cognitive level instead. Deliberately subtle.
+
+Per the rules, no check was reworded and no threshold moved in response.
