@@ -1,0 +1,1033 @@
+{
+  "$comment": "HELD-OUT validation set for wellposed's semantic checks. Never merge into semantic-corpus.json and never tune against it; see HOLDOUT-RULES.md.",
+  "generated": "2026-09-24",
+  "model_id": "jev-1.13.0",
+  "method": "Four generators, one per check, given the defect in plain English, forbidden from reading the repository, each writing 5 positives and 5 adversarial negatives. A second agent re-labelled every item blind. Decision rules were committed in HOLDOUT-RULES.md before generation.",
+  "items": [
+    {
+      "id": 1,
+      "defect": "criteria-off-topic",
+      "intent": "AP automation: flag duplicate vendor invoices before payment runs",
+      "state": {
+        "invoice_number": "INV-20931",
+        "vendor": "Northgate Office Supply",
+        "amount": 4812.5,
+        "invoice_date": "2026-08-14",
+        "recently_paid": [
+          {
+            "invoice_number": "INV-20913",
+            "amount": 4812.5,
+            "paid": "2026-08-20"
+          },
+          {
+            "invoice_number": "INV-20877",
+            "amount": 1290,
+            "paid": "2026-08-02"
+          }
+        ]
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this invoice a duplicate of an invoice we have already paid?",
+        "criteria": {
+          "true": "The invoice amount exceeds the $2,500 single-approver limit and needs a second approver before payment.",
+          "false": "The invoice amount is within the single-approver limit and can be paid on one approval."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question asks about duplication. The criteria define whether the amount is over the approval threshold. A $4,812.50 invoice would come out true under the criteria whether or not it duplicates INV-20913.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 2,
+      "defect": "criteria-off-topic",
+      "intent": "E-commerce returns portal: tag each return with the customer's stated reason for analytics",
+      "state": "Customer message: 'The jacket fits fine but the zipper pull snapped off the second time I wore it. I'd like my money back please.' Order #88213, delivered 19 days ago, within the 30-day return window.",
+      "question": {
+        "type": "choice",
+        "instructions": "What is the customer's reason for returning this item?",
+        "criteria": {
+          "refund": "Issue a refund to the original payment method.",
+          "exchange": "Ship a replacement of the same item in the same size.",
+          "store_credit": "Issue store credit for the purchase amount.",
+          "escalate": "Send the case to a support agent for manual review."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question asks for a reason category, such as defect, fit or changed mind. Each option only names a fulfillment action and never says what the reason is. Answering by the descriptions picks a remedy (refund), not the reason (product defect).",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 3,
+      "defect": "criteria-off-topic",
+      "intent": "SOC triage: rank suspicious-login alerts by how likely they are to be a real account takeover",
+      "state": {
+        "user": "j.okafor",
+        "event": "successful login",
+        "source_geo": "Lagos, NG",
+        "usual_geo": "Austin, US",
+        "mfa": "push approved",
+        "device": "new Windows device, first seen",
+        "time_since_last_login": "3 hours",
+        "role": "finance analyst"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "How likely is it that this login alert reflects an actual account compromise?",
+        "criteria": [
+          "low: the account has read-only access to non-sensitive systems",
+          "moderate: the account can modify data in internal business applications",
+          "high: the account has admin rights on production systems or access to customer PII",
+          "critical: the account holds domain admin or cloud root privileges"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "Subtle. The low-to-critical scale looks like a normal likelihood scale, but every level is defined by the account's privilege (impact), not by how likely compromise is. An impossible-travel login with a new device and a push approval three hours after a US session is strong compromise evidence. The levels would still score it low or moderate because a finance analyst has modest privileges.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 4,
+      "defect": "criteria-off-topic",
+      "intent": "Revenue cycle: stop incomplete prior-auth packets from being submitted to payers",
+      "state": {
+        "procedure": "MRI lumbar spine (CPT 72148)",
+        "payer": "Keystone Health Plan",
+        "payer_requires": [
+          "physician order",
+          "documentation of 6+ weeks conservative therapy",
+          "office note within 30 days"
+        ],
+        "attached": [
+          "physician order",
+          "office note 2026-09-10"
+        ],
+        "note_excerpt": "Persistent L5 radiculopathy despite 8 weeks PT and NSAIDs."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this prior authorization request complete, with every document the payer requires attached?",
+        "criteria": {
+          "true": "The clinical notes support that the requested MRI is medically necessary for the patient's condition.",
+          "false": "The clinical notes do not establish medical necessity for the requested MRI."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Subtle, because both properties belong to the same prior-auth workflow. The question asks whether the packet is complete, which it is not: the separate conservative-therapy documentation is missing. The criteria define medical necessity, which the note excerpt supports, so answering by the descriptions gives true for an incomplete packet.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 5,
+      "defect": "criteria-off-topic",
+      "intent": "LMS item bank: map each quiz item to the unit learning objective it assesses",
+      "state": "Grade 7 science quiz item: 'A ball rolls off a table. Explain why it falls to the floor instead of continuing in a straight line.' Unit objectives: LO1 describe forces acting on objects; LO2 calculate speed from distance and time; LO3 identify states of matter.",
+      "question": {
+        "type": "choice",
+        "instructions": "Which unit learning objective does this quiz item assess?",
+        "criteria": {
+          "LO1": "The item asks students to recall a fact, term, or definition.",
+          "LO2": "The item asks students to apply a procedure or formula to new values.",
+          "LO3": "The item asks students to analyze or explain why a phenomenon occurs.",
+          "none": "The item's cognitive demand cannot be determined from its text."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Subtle. The option labels are objectives, but the descriptions define cognitive level (recall, apply, analyze) and never the content of LO1-LO3. The item is about forces (LO1). It asks students to explain a phenomenon, so answering by the descriptions picks LO3, states of matter.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 6,
+      "defect": "criteria-off-topic",
+      "intent": "Contract review tool: flag clauses that restrict hiring the counterparty's staff",
+      "state": "Section 9.2: During the Term and for twelve (12) months thereafter, neither party shall, directly or through any affiliate or agent, induce or attempt to induce any employee of the other party who was materially involved in the Services to terminate their employment. General job postings not targeted at such employees shall not violate this Section.",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this contract clause impose an employee non-solicitation obligation?",
+        "criteria": {
+          "true": "The clause restricts at least one party from soliciting, recruiting, inducing, or hiring the other party's employees or contractors. This holds when any of the following apply: (a) the restriction operates directly or through affiliates, agents, or recruiters; (b) it applies during the term, after termination, or both; (c) it covers only a subset of personnel, such as those who worked on the engagement; (d) it carves out general advertising. The clause heading does not matter.",
+          "false": "The clause places no restriction on soliciting or hiring the other party's personnel. This includes clauses that restrict only soliciting customers, only restrict competing business activity, only govern confidentiality, or only state that personnel remain employees of their employer."
+        }
+      },
+      "has_defect": false,
+      "rationale": "Adversarial negative: the descriptions are long and list many conditions, but every condition refines the property the question asks about (an employee non-solicitation restriction). The exclusions in false mark the boundary of that same property. They do not introduce a new one.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 7,
+      "defect": "criteria-off-topic",
+      "intent": "HRIS intake: classify leave requests so they reach the right team",
+      "state": "Request from R. Delgado: 'My wife is due on Nov 3 and I'd like to take 6 weeks starting the day of the birth to be home with the baby. I understand some of it might be unpaid.'",
+      "question": {
+        "type": "choice",
+        "instructions": "What type of leave is this employee requesting?",
+        "criteria": {
+          "medical": "Leave for the employee's own illness, injury, surgery, or medical treatment. Route to the leave administrator for a provider certification.",
+          "family_care": "Leave to care for a spouse, child, or parent who has a serious health condition. Route to the leave administrator for certification.",
+          "parental": "Leave to bond with a new child after birth, adoption, or foster placement. Forward to the benefits team to confirm paid parental leave eligibility.",
+          "bereavement": "Leave following the death of a family member. Approve under the bereavement policy with no documentation needed.",
+          "other": "Any other leave reason, or no reason is stated. Send to the HR business partner for review."
+        }
+      },
+      "has_defect": false,
+      "rationale": "Adversarial negative that mirrors the 'options only state actions' positive. Each option first defines the leave category, then adds a routing step. The routing comes after the definition and does not replace it, so answering by the descriptions decides the leave type (parental).",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 8,
+      "defect": "criteria-off-topic",
+      "intent": "Warehouse receiving app: grade inbound damage from receiver notes and photos",
+      "state": {
+        "po": "PO-55120",
+        "contents": "Ceramic dinnerware sets, 24 cases",
+        "receiver_notes": "Stretch wrap torn on one side, 3 cases crushed at bottom corner, contents rattle; remaining 21 cases look intact.",
+        "photos_attached": 4
+      },
+      "question": {
+        "type": "score",
+        "instructions": "How severe is the damage to this inbound pallet?",
+        "criteria": [
+          "none: packaging and product are intact; receive normally",
+          "cosmetic: outer wrap or cartons are scuffed or torn but no product is damaged; receive and note it on the BOL",
+          "partial: some cases or units are damaged while the rest are sellable; receive the sellable cases and open a carrier claim for the rest",
+          "total: most or all of the product is damaged or the load is unsafe to handle; refuse the delivery"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "Adversarial negative: each level ends with a receiving action. Before that action, each level defines a damage-severity condition that can be observed. The scale measures the property the question asks about (partial here), and the actions are only consequences.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 9,
+      "defect": "criteria-off-topic",
+      "intent": "Release tooling: decide whether a merged PR forces a semver-major release",
+      "state": "PR #1432 diff summary: src/client.ts - `export function connect(url: string, opts?: ConnectOptions)` changed to `export function connect(opts: ConnectOptions)`; src/internal/retry.ts - refactored backoff helper; README updated with the new connect() example.",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this pull request introduce a breaking change to the library's public API?",
+        "criteria": {
+          "true": "Code that compiled and ran against the previous release would fail or behave differently, because an exported function, class, method, or type was removed or renamed, gained a required parameter, had parameters reordered, or had its documented default behavior changed. The release must be a major version bump.",
+          "false": "Existing callers are unaffected: changes are internal, additive (new optional parameters or new exports), or limited to tests, docs, or build config. A minor or patch bump is sufficient."
+        }
+      },
+      "has_defect": false,
+      "rationale": "Adversarial negative: each answer ends with a version-bump consequence, which could look like a different property. Each description first defines the breaking-change property in terms of the diff, and the semver note follows from it. The changed connect() signature makes the answer true.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 10,
+      "defect": "criteria-off-topic",
+      "intent": "Benefits portal: pre-screen utility assistance applications before caseworker review",
+      "state": {
+        "household_size": 3,
+        "annual_income": 31200,
+        "income_limit_for_household_size": 38730,
+        "state_resident": true,
+        "documents": {
+          "photo_id": "attached",
+          "proof_of_income": "attached",
+          "proof_of_residence": "missing"
+        }
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "What is this applicant's eligibility status for the utility bill assistance program?",
+        "criteria": {
+          "eligible": "Household income is at or below the program limit for the household size, the applicant is a state resident, and photo ID, proof of income, and proof of residence are all attached.",
+          "pending_documents": "Income and residency meet the program rules, but one or more of photo ID, proof of income, or proof of residence is missing or unreadable.",
+          "ineligible": "Household income is above the program limit for the household size, or the applicant is not a state resident.",
+          "cannot_determine": "Income, household size, or residency is not stated, so eligibility cannot be assessed."
+        }
+      },
+      "has_defect": false,
+      "rationale": "Adversarial negative: the descriptions list income, residency and document conditions rather than naming a status abstractly. Those conditions are the program's eligibility rules, so they define the eligibility status the question asks for (pending_documents here). They stay on topic.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 11,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Warehouse dispatch: decide whether a pallet goes out on today's scheduled carrier pickup.",
+      "state": {
+        "pallet_id": "PLT-88213",
+        "destination": "Kroger DC Louisville",
+        "carrier": "Estes",
+        "pickup": "16:00 today",
+        "bol_status": "signed",
+        "consignee_dock_hours": "06:00-22:00",
+        "weight_lb": 1840,
+        "hazmat": false
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Should this outbound pallet ship on today's 4pm carrier pickup?",
+        "criteria": {
+          "true": "Hold the pallet for the next pickup: the paperwork is incomplete or the consignee cannot receive it.",
+          "false": "Load it on the 4pm truck: the paperwork is complete and the consignee dock is open."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question asks whether to ship, but true describes holding the pallet back and false describes loading it. A high probability would mean 'hold', the opposite of what the question implies. This is the blatant form of the defect.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 12,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Expense automation: send clean, in-policy expense reports straight to reimbursement.",
+      "state": {
+        "report_id": "EXP-40291",
+        "employee_role": "field sales",
+        "total_usd": 412.18,
+        "lines": [
+          {
+            "cat": "hotel",
+            "amt": 289,
+            "receipt": true
+          },
+          {
+            "cat": "meals",
+            "amt": 74.18,
+            "receipt": true
+          },
+          {
+            "cat": "rideshare",
+            "amt": 49,
+            "receipt": true
+          }
+        ],
+        "policy_limits": {
+          "hotel_night": 325,
+          "meals_day": 90
+        }
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Can this expense report be auto-approved without manager review?",
+        "criteria": {
+          "true": "Route it to the manager's queue for manual review before reimbursement.",
+          "false": "Approve it automatically: every line item is within policy limits and has a receipt."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question asks whether the report can be auto-approved. True describes sending it for manual review, which is the NO answer, and false describes the auto-approve YES answer. Code that auto-approves when p(true) > 0.5 would do the opposite of what was intended.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 13,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Account security: flag suspicious sign-ins for step-up verification.",
+      "state": {
+        "user": "j.okafor",
+        "device_fingerprint": "new",
+        "geo": "Bucharest, RO",
+        "usual_geo": "Austin, TX",
+        "local_time": "03:12",
+        "mfa": "push approved",
+        "prior_failures_1h": 4
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this login attempt legitimate?",
+        "criteria": {
+          "true": "Does not match the user's registered devices, usual geolocation, or typical login hours.",
+          "false": "Consistent with the user's known device, location, and time-of-day history."
+        }
+      },
+      "has_defect": true,
+      "rationale": "This one is subtle. The true description is written in negations, so it can pass for a list of 'not suspicious' conditions, but it actually describes an anomalous login, which is the NOT-legitimate case. False describes the legitimate case, so the polarity is inverted. It contrasts with the correct negation-heavy negative (the abandoned-branch item).",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 14,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Registrar tooling: block enrollment in a course when prerequisites are not met.",
+      "state": {
+        "student_id": "S1049932",
+        "term": "Spring 2027",
+        "transcript": [
+          {
+            "course": "CHEM 101",
+            "grade": "B+"
+          },
+          {
+            "course": "CHEM 141",
+            "grade": "C-"
+          }
+        ],
+        "transfer_credits": [],
+        "override_on_file": false
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Has this student satisfied the prerequisite to enroll in CHEM 241 (Organic Chemistry II)?",
+        "criteria": {
+          "true": "The student still needs to complete CHEM 141 with a grade of C or better before enrolling.",
+          "false": "The transcript shows CHEM 141 completed with a C or better, or an approved equivalent transfer credit."
+        }
+      },
+      "has_defect": true,
+      "rationale": "This one is subtle. Both descriptions are about the same prerequisite and read like a sensible pair. But 'still needs to complete' is the NOT-satisfied case, and it is attached to true for a question that asks 'has the student satisfied'. A careful reader skimming for the course code could miss it.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 15,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Revenue cycle: decide which outgoing claims need a human coder before submission to the payer.",
+      "state": {
+        "claim_id": "CLM-2026-118804",
+        "payer": "Aetna PPO",
+        "cpt": [
+          "99214",
+          "93000"
+        ],
+        "icd10": [
+          "I10",
+          "R00.2"
+        ],
+        "modifiers": {
+          "99214": "25"
+        },
+        "place_of_service": "11",
+        "rendering_npi": "1528064731"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Should this claim be held for manual coding review before submission?",
+        "criteria": {
+          "true": "Submit to the payer as-is: the CPT and ICD-10 codes are consistent and all required modifiers are present.",
+          "false": "Hold for a certified coder: the codes conflict or a required modifier is missing."
+        }
+      },
+      "has_defect": true,
+      "rationale": "The question is framed around holding the claim, so YES means hold. But true describes a clean claim that should be submitted, and false describes the hold case. It mirrors the correct 'should this return be refused' negative, except here the mapping is flipped.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 16,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Repo hygiene bot: find stale branches that can be deleted safely.",
+      "state": {
+        "repo": "payments-api",
+        "branch": "feat/ledger-v2-backfill",
+        "last_commit": "2026-05-02",
+        "open_prs": 0,
+        "ci_refs": [],
+        "protected": false,
+        "merged_into_main": false,
+        "author_active": true
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this Git branch abandoned and safe to delete?",
+        "criteria": {
+          "true": "No commits in the last 90 days, no open pull request, not referenced by any CI pipeline or deploy config, and not a protected branch.",
+          "false": "Has recent commits, an open pull request, a pipeline or deploy reference, or branch protection."
+        }
+      },
+      "has_defect": false,
+      "rationale": "This is an adversarial negative: the true description is made entirely of negations, but together they describe an abandoned branch, which is the YES case. The mapping is correct even though at a glance it looks like a list of 'nothing is there' conditions attached to true.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 17,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Store returns desk: enforce the return policy consistently at the register.",
+      "state": {
+        "store": "#0417",
+        "sku": "JKT-SHELL-M-BLK",
+        "purchase_date": "2026-08-03",
+        "return_date": "2026-09-24",
+        "receipt": true,
+        "tags_attached": false,
+        "condition_note": "worn, light staining at cuffs",
+        "loyalty_tier": "gold"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Should this in-store return be refused?",
+        "criteria": {
+          "true": "Refuse the return: it is outside the 30-day window, lacks proof of purchase, or the item shows use or damage.",
+          "false": "Accept the return and issue a refund to the original payment method."
+        }
+      },
+      "has_defect": false,
+      "rationale": "This is an adversarial negative: the question is negatively framed (refuse), so a negative action ('Refuse') on true is correct. It looks inverted because true is the rejecting outcome, but YES to 'should it be refused' really does mean refuse.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 18,
+      "defect": "criteria-polarity-inverted",
+      "intent": "Contract review: flag vendor agreements that could silently roll over into another term.",
+      "state": {
+        "doc": "MSA_Brightline_Analytics_v3.pdf",
+        "clause_12.1": "Initial Term of 24 months from Effective Date.",
+        "clause_12.2": "Either party may terminate for convenience on 60 days' written notice.",
+        "exhibit_B": "Pricing fixed for Initial Term; any extension requires a signed amendment."
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this vendor agreement free of automatic renewal terms?",
+        "criteria": {
+          "true": "No auto-renewal, evergreen, or automatic term-extension language appears anywhere in the agreement or its exhibits.",
+          "false": "At least one clause renews or extends the term unless a party gives notice."
+        }
+      },
+      "has_defect": false,
+      "rationale": "This is an adversarial negative: the question is about an absence. 'Free of auto-renewal' is YES when the clause is absent, so a true description that says 'no auto-renewal language' is the correct mapping even though it reads negative.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 19,
+      "defect": "criteria-polarity-inverted",
+      "intent": "HR compliance: catch incomplete employment-eligibility paperwork before the three-day deadline.",
+      "state": {
+        "employee": "new hire #H-7731",
+        "start_date": "2026-09-21",
+        "section1_signed": true,
+        "section2": {
+          "list_a": null,
+          "list_b": {
+            "type": "driver's license",
+            "exp": "2029-04-11"
+          },
+          "list_c": null
+        },
+        "reviewer": "HR coordinator"
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Is this new hire's Form I-9 missing required documentation?",
+        "criteria": {
+          "true": "Section 2 lacks an acceptable List A document or a List B plus List C combination, or a listed document is expired.",
+          "false": "Section 2 records a valid, unexpired List A document or a valid List B plus List C combination."
+        }
+      },
+      "has_defect": false,
+      "rationale": "This is an adversarial negative: the question asks whether something is missing, so YES is the deficient case. True correctly describes the lacking or expired documentation. It looks inverted because the 'bad' outcome sits on true, but that is what the question asks about.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 20,
+      "defect": "criteria-polarity-inverted",
+      "intent": "City 311 triage: avoid sending crews to duplicate or already-fixed pothole reports.",
+      "state": {
+        "ticket": "311-2026-558190",
+        "location": "Halsted St & W 18th St, northbound lane",
+        "reported": "2026-09-23 07:40",
+        "open_work_orders_within_50m": [
+          "WO-88412 (pothole, scheduled 2026-09-25)"
+        ],
+        "last_inspection": null,
+        "photo": true
+      },
+      "question": {
+        "type": "noul",
+        "instructions": "Should this 311 pothole report be closed without dispatching a repair crew?",
+        "criteria": {
+          "true": "Close without dispatch: the location duplicates an open work order or a recent inspection shows it has already been patched.",
+          "false": "Dispatch a crew: the pothole is new and unrepaired."
+        }
+      },
+      "has_defect": false,
+      "rationale": "This is an adversarial negative: the question is phrased around NOT taking action, so true correctly describes closing without dispatch. A reader expecting 'true = do the work' might flag it, but the mapping matches the question exactly.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 21,
+      "defect": "levels-reversed",
+      "intent": "Triage a dependency vulnerability from the SCA scanner into a severity bucket for the security backlog.",
+      "state": {
+        "package": "xml2js@0.4.19",
+        "advisory": "Prototype pollution via crafted XML attribute names",
+        "reachable_from_our_code": true,
+        "exposed_endpoint": "POST /api/import (authenticated, admin role only)",
+        "public_exploit": false
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate the severity of this vulnerability finding for our environment. Levels are listed from least severe to most severe.",
+        "criteria": [
+          "Critical: remotely exploitable by unauthenticated users with a public exploit; patch within 24 hours",
+          "High: exploitable in our deployment with limited preconditions; patch this sprint",
+          "Medium: exploitable only by privileged users or under unusual configuration",
+          "Low: not reachable from our code paths or purely theoretical"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The instructions say least severe first, but the list starts at Critical and ends at Low. A higher index means less severe, the opposite of what the question claims. This is a clean, explicit reversal.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 22,
+      "defect": "levels-reversed",
+      "intent": "Assign an AML review tier to a flagged outbound wire so it lands in the right analyst queue.",
+      "state": {
+        "amount_usd": 48500,
+        "originator": "Harbor Point Trading LLC",
+        "beneficiary_country": "UAE",
+        "routing": "via correspondent bank in Istanbul",
+        "customer_tenure_months": 4,
+        "prior_alerts": 2,
+        "watchlist_screen": "partial name match, 82% similarity"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Assign the review tier for this flagged wire. The tiers below are listed in order of increasing money-laundering risk.",
+        "criteria": [
+          "Tier 1: confirmed or probable sanctions/watchlist match; freeze funds and escalate to BSA officer",
+          "Tier 2: multiple red flags (high-risk corridor, new customer, structuring pattern); senior analyst review",
+          "Tier 3: single unexplained red flag; standard analyst review",
+          "Tier 4: activity consistent with customer profile; close alert with note"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "This one is subtle. The tier numbers go up from 1 to 4, so at a glance the list looks ascending. But the risk each tier describes goes down: Tier 1 is a probable sanctions match and Tier 4 is normal activity. The question says 'increasing risk', so the listed order is backwards against the stated direction. The ascending labels hide the reversal.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 23,
+      "defect": "levels-reversed",
+      "intent": "Score a student's lab-report conclusion against the department rubric and write the result to the gradebook.",
+      "state": "Grade 10 Biology, lab: catalase activity vs temperature. Student conclusion: 'Our results show that increasing the temperature made the enzyme work faster, up to 40\u00b0C, then slower. This proves enzymes denature. Our hypothesis was correct.'",
+      "question": {
+        "type": "score",
+        "instructions": "Score the conclusion using the rubric. Rubric levels are listed from strongest to weakest performance.",
+        "criteria": [
+          "Beginning: restates results without linking them to the hypothesis or explaining the trend",
+          "Developing: links results to the hypothesis but the explanation is vague or overclaims",
+          "Proficient: explains the trend using data and correctly relates it to the hypothesis",
+          "Exemplary: explains the trend with specific data, addresses limitations or error sources, and states an appropriately qualified conclusion"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The instructions say strongest first, but the rubric starts at Beginning and ends at Exemplary. The listed order is weakest to strongest, so the index runs opposite to the stated direction. This is the descending-claim version of the defect, where the other positives make an ascending claim.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 24,
+      "defect": "levels-reversed",
+      "intent": "Decide how far to escalate an employee-relations complaint submitted through the HR portal.",
+      "state": {
+        "submitted_by": "warehouse associate, 2nd shift",
+        "summary": "Shift lead keeps scheduling me on Saturdays after I requested a religious accommodation; told me 'if you can't work Saturdays, find another job.'",
+        "witnesses": "one coworker",
+        "prior_complaints_against_lead": 1
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Choose the escalation level for this complaint. The first level means HR can handle it informally; the last level means it needs immediate legal and executive involvement.",
+        "criteria": [
+          "Immediate escalation to employment counsel and VP People; potential discrimination or retaliation claim",
+          "Formal investigation by the HR business partner within 5 business days",
+          "Manager coaching conversation facilitated by HR",
+          "Informal resolution: acknowledge receipt and provide policy information"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The direction is set by naming the endpoints rather than by a 'least to most' phrase. The first level should be informal and the last should be legal/executive. The list puts counsel escalation first and informal resolution last, so the endpoints are swapped and the whole scale is reversed.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 25,
+      "defect": "levels-reversed",
+      "intent": "Infer shipment progress from a raw carrier event log so the customer portal can draw a progress bar.",
+      "state": {
+        "tracking": "1Z84X2E70398812245",
+        "events": [
+          "09-21 18:02 Origin scan - Memphis, TN",
+          "09-22 04:40 Departed facility - Memphis, TN",
+          "09-23 11:15 Arrived at facility - Columbus, OH",
+          "09-23 22:10 Departed facility - Columbus, OH"
+        ]
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Based on the carrier events, how far along is this shipment? We render the returned level as a progress bar filling left to right, so levels are ordered from least to most progress. Pick the furthest stage the events support.",
+        "criteria": [
+          "Delivered: proof of delivery or 'delivered' scan recorded",
+          "Out for delivery: package is on the local delivery vehicle",
+          "In transit: departed at least one carrier facility",
+          "Picked up: origin scan recorded",
+          "Label created: no carrier scan yet"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "The direction is stated partway through the instructions and justified by the rendering ('filling left to right... least to most progress'). The stages are listed from Delivered down to Label created, which is most to least progress. The progress bar would fill backwards.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 26,
+      "defect": "levels-reversed",
+      "intent": "Grade a returned item's condition to route it to restock, open-box, refurbished, or liquidation.",
+      "state": {
+        "item": "5-qt tilt-head stand mixer",
+        "return_reason": "changed mind",
+        "inspector_notes": "Box opened and retaped; all attachments present in original bags; light scuff on bowl base; no signs of use on beater or dough hook."
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Grade the returned item's condition. Levels are listed from most resellable to least resellable.",
+        "criteria": [
+          "New: unopened, factory seal intact; restock at full price",
+          "Like new: opened, all accessories present, no visible wear; restock as open-box",
+          "Good: minor cosmetic wear or missing non-essential packaging; sell as refurbished",
+          "Damaged: functional defect, missing essential parts, or heavy wear; send to liquidation"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The question states a descending order (most resellable first), and the levels do run from New down to Damaged. Listed order and stated direction match. It looks suspicious only because it goes against the usual ascending convention, and that is not a defect.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 27,
+      "defect": "levels-reversed",
+      "intent": "Prioritize a 311 pothole report so the streets department can schedule repair crews.",
+      "state": {
+        "report_id": "311-2026-0918-4471",
+        "location": "Eastbound Harmon Ave at the elementary school crosswalk",
+        "description": "Pothole about 2 ft wide; cars are swerving into the bike lane to avoid it",
+        "photos": 2,
+        "duplicate_reports": 3
+      },
+      "question": {
+        "type": "score",
+        "instructions": "How urgently does this pothole need a repair crew?",
+        "criteria": [
+          "Emergency: hazard to life or forcing vehicles out of lane; cone off and repair within 24 hours",
+          "Priority: significant vehicle-damage risk on an arterial road; repair within 3 business days",
+          "Routine: add to the next scheduled patching route",
+          "No action: not a pothole, on private property, or already repaired"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The question states no ordering at all. The levels run most to least urgent, which a reader expecting ascending severity might flag, but with no stated direction there is nothing for the list to contradict. Either direction is fine here.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 28,
+      "defect": "levels-reversed",
+      "intent": "Estimate the blast radius of a pull request so the merge bot knows how many code-owner approvals to require.",
+      "state": {
+        "pr": "#2291",
+        "title": "Refactor retry logic in shared HTTP client",
+        "files_changed": [
+          "libs/http/client.ts",
+          "libs/http/retry.ts",
+          "libs/http/__tests__/retry.test.ts"
+        ],
+        "dependents": "imported by 14 services",
+        "diff": "+182 -97"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate the blast radius of this change. Levels are listed from smallest to largest blast radius.",
+        "criteria": [
+          "Service-wide: changes behavior of one deployable service",
+          "Isolated: tests, docs, or code behind a disabled flag only",
+          "Platform-wide: shared library or infra used by many services",
+          "Module-local: confined to one module with no public API change"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The levels are jumbled, not reversed. By true magnitude they sit at ranks 3, 1, 4, 2, which is neither the stated ascending order nor its mirror. This is a real problem, but it is a scrambled-order defect, not levels-reversed, so it is a negative for this defect.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": false
+    },
+    {
+      "id": 29,
+      "defect": "levels-reversed",
+      "intent": "Pre-assign a provisional ESI level from the registration desk's intake note so the charge nurse's tracking board sorts correctly.",
+      "state": "Walk-in, 34F. Chief complaint recorded at registration: 'sprained my ankle yesterday playing soccer, can walk on it but it's swollen.' Vitals not yet taken. No other complaints noted.",
+      "question": {
+        "type": "score",
+        "instructions": "Assign a provisional ESI triage level for the charge nurse's board. Levels are listed from least urgent to most urgent.",
+        "criteria": [
+          "ESI 5: no resources expected (e.g., prescription refill, simple exam)",
+          "ESI 4: one resource expected (e.g., X-ray or simple laceration repair)",
+          "ESI 3: two or more resources expected, stable vitals",
+          "ESI 2: high-risk situation, confused or lethargic, or severe pain/distress",
+          "ESI 1: requires immediate life-saving intervention"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The label numbers count down from ESI 5 to ESI 1, which looks like a descending list. In ESI, a lower number means more urgent, so urgency actually rises from ESI 5 to ESI 1. That matches the stated 'least urgent to most urgent'. The labels run opposite to the property, but the listed order is correct.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 30,
+      "defect": "levels-reversed",
+      "intent": "Score an indemnification clause in an inbound vendor contract so the legal-ops dashboard can flag clauses that need redlines.",
+      "state": "We are the Customer. Clause 11.2: 'Customer shall indemnify, defend and hold harmless Vendor from any and all claims arising out of or relating to Customer's use of the Services, including claims alleging the Services infringe third-party IP.' No reciprocal Vendor indemnity. No cap stated.",
+      "question": {
+        "type": "score",
+        "instructions": "Score how favorable this indemnification clause is to the Customer. Levels are ordered from least favorable to most favorable to the Customer.",
+        "criteria": [
+          "Severely one-sided against Customer: Customer bears uncapped indemnity, including for Vendor's own IP; redline required",
+          "Unfavorable: one-way indemnity toward Vendor, but excludes Vendor's IP and is capped",
+          "Market standard: mutual indemnities, each party covers its own IP and negligence, capped at fees paid",
+          "Favorable: Vendor indemnifies Customer for IP infringement uncapped; Customer's indemnity is narrow and capped"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The first level starts with 'Severely', which a reader thinking in terms of risk might take for the top of a scale and so read the list as reversed. The stated property is favorability to the Customer, and the list does run from least favorable (severely one-sided) to most favorable. Order and statement agree.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 31,
+      "defect": "bundled-judgments",
+      "intent": "Subtle positive (legal): the instruction reads as one question, but the criteria join enforceability with whether the terms suit the client.",
+      "state": "Clause 14.2: Employee agrees not to engage in any business competitive with the Company within 150 miles of any Company office for a period of 36 months following termination, for any reason. Governing law: Texas. Our client: the employee, deciding whether to sign.",
+      "question": {
+        "type": "noul",
+        "instructions": "Decide whether this non-compete clause holds up.",
+        "criteria": {
+          "true": "The clause is likely enforceable as written under the governing law, and its terms are acceptable for our client to sign.",
+          "false": "The clause is likely unenforceable, or its terms are not acceptable for our client."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Enforceability and whether the terms suit the client are separate legal judgments. For an employee client they can point opposite ways, because an unenforceable clause is good news for the employee. A false answer does not say which part failed. The instruction sounds like one question, so the bundling shows only in the criteria.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 32,
+      "defect": "bundled-judgments",
+      "intent": "Positive (logistics): a choice whose options are the cross product of two independent decisions.",
+      "state": {
+        "order_id": "SO-88213",
+        "contents": "2x refurbished server blades",
+        "declared_value_usd": 4200,
+        "weight_kg": 31,
+        "origin": "Reno, NV",
+        "destination": "Newark, NJ",
+        "customer_deadline": "2026-09-29",
+        "today": "2026-09-24"
+      },
+      "question": {
+        "type": "choice",
+        "instructions": "Pick the shipping plan for this order.",
+        "criteria": {
+          "ground_insured": "Ship by ground freight with declared-value insurance.",
+          "ground_uninsured": "Ship by ground freight with only the carrier default liability.",
+          "air_insured": "Ship by air with declared-value insurance.",
+          "air_uninsured": "Ship by air with only the carrier default liability."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Transport mode depends on the deadline, and insurance depends on the declared value. The options pack these two independent decisions into a 2x2 grid. The chosen option does not show whether mode or insurance was the hard call. Two separate questions, each with its own answer, would be better.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 33,
+      "defect": "bundled-judgments",
+      "intent": "Subtle positive (finance): a flag whose true criterion is an OR of a fraud judgment and an unrelated amount-limit check.",
+      "state": "From: Dana Whitfield, CFO <cfo@acme-holdings.co> | To: ap@acmeholdings.com | Subject: urgent vendor payment | Body: Please wire $38,500 to the new account below before 3pm today. I am in back-to-back meetings, do not call. Routing 021000021, Acct 4481920033.",
+      "question": {
+        "type": "noul",
+        "instructions": "Should treasury manually review this payment request before it is processed?",
+        "criteria": {
+          "true": "The request shows signs of business email compromise (look-alike sender domain, pressure to act fast, new bank details, discouraged verification), or the amount is above the $25,000 single-approver limit.",
+          "false": "The request shows no signs of business email compromise and the amount is within the $25,000 single-approver limit."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Whether an email looks like business email compromise and whether an amount is over the approval limit are two independent judgments joined by OR. A true answer cannot tell treasury if it is a probable fraud or just a large legitimate payment, and those are handled differently. It looks like one routing rule, so a reader can miss it.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 34,
+      "defect": "bundled-judgments",
+      "intent": "Positive (security): a score whose instruction asks for severity and true-positive confidence on one scale.",
+      "state": {
+        "alert": "Impossible travel",
+        "user": "j.okafor",
+        "events": [
+          {
+            "time": "08:02Z",
+            "ip": "73.12.44.9",
+            "geo": "Denver, US"
+          },
+          {
+            "time": "08:41Z",
+            "ip": "185.220.101.34",
+            "geo": "Frankfurt, DE",
+            "note": "Tor exit node"
+          }
+        ],
+        "mfa": "passed on both logins",
+        "corporate_vpn_client_installed": true
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how severe this alert is and how confident you are that it is a true positive.",
+        "criteria": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ]
+      },
+      "has_defect": true,
+      "rationale": "Severity (the impact if the alert is real) and the likelihood that it is a true positive are independent. A critical-impact alert can be a probable false positive. A single level such as medium could mean severe but unlikely, or likely but minor, so the SOC cannot act on it.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 35,
+      "defect": "bundled-judgments",
+      "intent": "Positive (education): an explicit is-X-and-is-Y noul instruction.",
+      "state": "Assignment: Grade 7 social studies, Describe one cause of the American Revolution (250-400 words). Submission, 312 words: The Stamp Act of 1765 was a tax Britain put on paper goods in the colonies, like newspapers and playing cards. Colonists were angry because they had no representatives in Parliament to vote on it...",
+      "question": {
+        "type": "noul",
+        "instructions": "Is this submission on the assigned prompt, and is it written at a reading level appropriate for 7th grade?",
+        "criteria": {
+          "true": "The submission addresses the assigned prompt and is written at a 7th-grade-appropriate reading level.",
+          "false": "The submission is off-prompt, or its reading level is not appropriate for 7th grade."
+        }
+      },
+      "has_defect": true,
+      "rationale": "Relevance to the prompt and reading level are separate properties. A false answer does not tell the teacher whether the student missed the topic or wrote at the wrong level, and those call for different feedback.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 36,
+      "defect": "bundled-judgments",
+      "intent": "Adversarial negative (HR): one property, discriminatory language, defined through several clauses and examples.",
+      "state": "Job posting, Senior Account Executive: We are a young, energetic team looking for a digital native who can keep up with our fast pace. Ideal candidates are recent grads or early-career hustlers ready to grind. Must be able to lift 10 lbs occasionally. Competitive base plus uncapped commission.",
+      "question": {
+        "type": "noul",
+        "instructions": "Does this job posting contain discriminatory language? Count language as discriminatory if it states or implies a preference based on age, sex, race, religion, national origin, or disability, including coded phrases such as digital native, recent grad, or young team.",
+        "criteria": {
+          "true": "The posting states or implies a preference based on a protected characteristic.",
+          "false": "The posting contains no stated or implied preference based on a protected characteristic."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The long instruction lists many characteristics and example phrases, but they all define one property: a preference based on a protected characteristic. The list is a definition, not several independent questions. Each answer means one thing.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 37,
+      "defect": "bundled-judgments",
+      "intent": "Adversarial negative (retail): a consider-A, B and C instruction that feeds one likelihood judgment.",
+      "state": {
+        "order_id": "W-55102",
+        "item": "Wireless earbuds, $149",
+        "delivered": "2026-09-02",
+        "return_requested": "2026-09-21",
+        "reason": "Item not as described",
+        "customer_returns_last_12mo": 7,
+        "customer_orders_last_12mo": 9,
+        "return_photo_serial": "does not match shipped serial"
+      },
+      "question": {
+        "type": "score",
+        "instructions": "Rate how likely this return request is fraudulent. Consider the customer return history, the time between delivery and the request, and whether the photographed item matches what was shipped.",
+        "criteria": [
+          "very unlikely",
+          "unlikely",
+          "possible",
+          "likely",
+          "very likely"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "The instruction names three pieces of evidence, but only one judgment is asked for: the likelihood of fraud. Return history, timing and serial mismatch are inputs to that judgment, not separate outputs. The scale measures one quantity.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 38,
+      "defect": "bundled-judgments",
+      "intent": "Adversarial negative (public services): long option descriptions joined by and, each defining one routing category.",
+      "state": "311 report #2026-448120: Recycling bin at 4410 Birch Ln was skipped again this week, third Tuesday in a row. Trash was collected, only the blue bin was left at the curb.",
+      "question": {
+        "type": "choice",
+        "instructions": "Route this 311 report to the department responsible for resolving it.",
+        "criteria": {
+          "streets": "Potholes, damaged pavement, faded lane markings, and missing or damaged street signs on public roads.",
+          "water_sewer": "Water main breaks, storm drain and sewer blockages, hydrant damage, and flooding caused by drainage failures.",
+          "sanitation": "Missed trash, recycling, or compost pickup, illegal dumping, overflowing public litter bins, and dead animal removal.",
+          "parks": "Damage, hazards, or maintenance needs inside city parks, playgrounds, and public trails.",
+          "none_of_these": "The report does not fall under any of the departments above."
+        }
+      },
+      "has_defect": false,
+      "rationale": "Each option description is a long list joined by and, but every list gives the scope of one department. Picking an option is a single routing decision. The options do not combine answers to two different questions.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 39,
+      "defect": "bundled-judgments",
+      "intent": "Adversarial negative (healthcare admin): score levels whose multi-clause descriptions all place one urgency on one scale.",
+      "state": "Patient portal message, patient age 67, active warfarin prescription: Hi, I slipped in the kitchen this morning and hit my head on the counter. I feel okay but I have a headache that is getting worse. Should I keep my appointment next week or come in earlier?",
+      "question": {
+        "type": "score",
+        "instructions": "Rate the urgency of this patient portal message for the nurse triage queue.",
+        "criteria": [
+          "routine - can wait for the next business day and a standard reply",
+          "soon - needs a nurse response within 24 hours",
+          "urgent - needs same-day clinician review and a phone call to the patient",
+          "emergency - patient should be told to call 911 or go to the ER now"
+        ]
+      },
+      "has_defect": false,
+      "rationale": "Each level pairs a label with the action it implies, sometimes joined by and. Both parts describe the same urgency point, not a second dimension. The levels are ordered on one axis, and the answer is one judgment.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    },
+    {
+      "id": 40,
+      "defect": "bundled-judgments",
+      "intent": "Adversarial negative (developer tooling): commit-type options with conjunctive descriptions and a precedence note, still one categorization.",
+      "state": "Commit a41f9c2, message: Fix off-by-one in pagination cursor. Diff: src/api/paginate.ts changes if (i <= limit) to if (i < limit); tests/paginate.test.ts adds a case for exactly limit items. No exported signatures changed.",
+      "question": {
+        "type": "choice",
+        "instructions": "Classify this commit for the changelog generator.",
+        "criteria": {
+          "fix": "Corrects incorrect or broken behavior without adding new capability. Tests that accompany the fix are part of it.",
+          "feature": "Adds a new user-facing capability, option, or endpoint, including any tests and docs shipped with it.",
+          "refactor": "Restructures internal code with no change in observable behavior.",
+          "perf": "Improves speed or resource use with no change in observable behavior or output.",
+          "chore": "Build, CI, dependency, formatting, or documentation-only changes that do not touch runtime behavior."
+        }
+      },
+      "has_defect": false,
+      "rationale": "The descriptions contain conjunctions and exclusions (without adding new capability, including tests and docs), but each defines the boundary of one commit type. The options are mutually exclusive values of one variable, not a cross product of two.",
+      "adjudicator_agreed": true,
+      "adjudicator_confident": true
+    }
+  ]
+}
