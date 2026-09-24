@@ -69,7 +69,7 @@ The three primitives take **different criteria shapes**, and the API rejects the
 
 | Primitive | `criteria` shape | Wrong shape gives |
 |---|---|---|
-| **Noul** | `{"true": "...", "false": "..."}`, optional | 422 on an array |
+| **Noul** | `{"true": "...", "false": "..."}`, optional | 422 on an array; any other key (`"yes"`, `"no"`) is **accepted and silently dropped** |
 | **Choice** | `{"option": "description", ...}` — a map | 422 `dict_type` on an array |
 | **Score** | `["lowest", ..., "highest"]` — an ordered array, 2–10 levels | 422 `list_type` on an object |
 

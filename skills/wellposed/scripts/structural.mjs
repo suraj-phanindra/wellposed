@@ -274,7 +274,7 @@ export const RULES = {
   'jev/date-comparison': { severity: 'warn', source: 'jaggedness: dates read as text' },
   'jev/double-negative': { severity: 'warn', source: 'jaggedness: indirection costs accuracy' },
   'noul/degree-question': { severity: 'warn', source: 'docs: use a Score for degree' },
-  'noul/unexpected-criteria-keys': { severity: 'warn', source: 'only true/false are meaningful' },
+  'noul/unexpected-criteria-keys': { severity: 'error', source: 'verified: live API 200, other keys silently dropped' },
   'question/id-only-semantics': { severity: 'warn', source: 'docs: the question key is never sent to the model' },
   'score/crossed-dimensions': { severity: 'warn', source: 'blind corpus: 1/1 caught, 0 of 26 other Score questions flagged' },
   'score/numeric-only-levels': { severity: 'warn', source: 'docs: numbers-only levels give nothing to match' },
@@ -381,8 +381,14 @@ export function lintQuestion(id, q, opts = {}) {
     } else if (isPlainObject(q.criteria)) {
       const bad = Object.keys(q.criteria).filter((k) => k !== 'true' && k !== 'false');
       if (bad.length) {
-        out.push(finding('noul/unexpected-criteria-keys', 'warn',
-          `Noul "${id}" has criteria keys ${JSON.stringify(bad)}; only "true" and "false" are meaningful.`, at));
+        // [verified] jev-1.13.0 accepts other keys with a 200 and drops them: a
+        // definition under "yes" gave P(yes) 0.50, the same as no criteria (0.48);
+        // the same text under "true" gave 0.98. Nothing tells the author.
+        out.push(finding('noul/unexpected-criteria-keys', 'error',
+          `Noul "${id}" has criteria keys ${JSON.stringify(bad)}. jev accepts the request and silently drops them — only "true" and "false" reach the model.`, {
+            ...at, fix: 'Rename the keys to "true" and "false".',
+            doc: 'https://docs.typesafe.ai/primitives/noul',
+          }));
       }
     }
     if (isPlainObject(q.criteria)) {

@@ -585,3 +585,9 @@ test('options phrased as an absence or complement count as the escape hatch', ()
   assert.equal(hatch('billing', 'technical', 'sales'), false, 'a closed list with no catch-all is still flagged');
   assert.equal(hatch('notification', 'nonprofit', 'nothingness_studies'), false, 'words that merely start with no/not/none are not negations');
 });
+
+test('Noul criteria under yes/no are an error, because jev silently drops them', () => {
+  const f = lintQuestion('q', { type: 'noul', instructions: 'Is `code` a match?', criteria: { yes: 'starts with A', no: 'anything else' } })
+    .find((x) => x.rule === 'noul/unexpected-criteria-keys');
+  assert.equal(f?.severity, 'error');
+});
