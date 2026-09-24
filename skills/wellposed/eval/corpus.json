@@ -10,7 +10,8 @@
     "D5": "non-concrete-score-levels",
     "D6": "unanswerable-from-state",
     "D7": "syntax-or-type-error",
-    "D4x": "documented-jev-weak-spot"
+    "D4x": "documented-jev-weak-spot",
+    "D8": "crossed-dimensions"
   },
   "items": [
     {
@@ -998,6 +999,59 @@
       "label": "bundled-judgments",
       "defect_code": "D2",
       "source": "adversarial-2026-09-18"
+    },
+    {
+      "id": 77,
+      "intent": "Score incoming pull requests so reviewers know which ones to pick up first.",
+      "question": {
+        "type": "score",
+        "instructions": "Rate this pull request on how clearly the description explains the change and how well the diff is covered by tests.",
+        "criteria": [
+          "description is unreadable and the diff has no tests",
+          "description is vague and test coverage is thin",
+          "description is adequate and coverage is partial",
+          "description is clear and most changed paths are tested",
+          "description is excellent and every changed path is tested"
+        ]
+      },
+      "label": "crossed-dimensions",
+      "defect_code": "D8",
+      "source": "semantic-corpus#3 (blind-generated 2026-09-21)"
+    },
+    {
+      "id": 78,
+      "intent": "Order the overnight support queue by how much pain the customer is in right now.",
+      "question": {
+        "type": "score",
+        "instructions": "Rate how badly the customer's day-to-day workflow is blocked right now.",
+        "criteria": [
+          "nothing is blocked - a question, a feature request or a cosmetic complaint",
+          "a task is slower or more annoying, but the normal path still works",
+          "a task is blocked and a documented workaround is available and in use",
+          "a core workflow is blocked and the only workaround is manual and costly",
+          "the customer cannot operate at all and no workaround exists"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "semantic-corpus#9 (blind-generated 2026-09-21)"
+    },
+    {
+      "id": 79,
+      "intent": "Assign an operational severity to an inbound enterprise incident so paging and SLA clocks are right.",
+      "question": {
+        "type": "score",
+        "instructions": "Rate the operational severity of this customer-reported incident.",
+        "criteria": [
+          "Cosmetic: no functional impact, nothing to work around",
+          "Minor: a non-critical feature is degraded for some users and a documented self-serve workaround exists",
+          "Major: a core workflow is broken for many users and the only workaround is manual and slow",
+          "Critical: the product is unusable for every user on the account and no workaround exists"
+        ]
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "semantic-corpus#56 (blind-generated 2026-09-21)"
     }
   ],
   "corrections": [
@@ -1014,6 +1068,11 @@
       "batch": "adversarial-2026-09-18",
       "n": 36,
       "why": "An external adversarial test found six rules misfiring on ordinary business English at roughly 10-20% precision. None of those phrasings existed in the original 40-item corpus, so the reported 86% precision could not see them: it was unchanged before and after the fix. These items were added so the metric measures the failure mode that was actually found."
+    },
+    {
+      "batch": "imported-from-semantic-corpus-2026-09-24",
+      "n": 3,
+      "why": "Score-level bundling had no structural rule, and the obvious detector - counting and/or in levels - fires on most well-formed severity ladders. These three items were written by the semantic corpus's blind generators, not by the author of the new rule: one real positive and two adversarial ladders that a keyword detector misfires on. Imported so the structural scoreboard measures the new rule against cases it was not designed around."
     }
   ]
 }

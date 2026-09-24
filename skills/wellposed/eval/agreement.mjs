@@ -25,6 +25,7 @@ const CATCHES = {
   'jev-arithmetic': ['jev/arithmetic'],
   'jev-date-comparison': ['jev/date-comparison'],
   'jev-double-negative': ['jev/double-negative'],
+  'crossed-dimensions': ['score/crossed-dimensions'],
   // Deliberately NOT claimed by structural rules — these need Layer 3.
   'overlapping-choice-options': [],
   'unanswerable-from-state': [],
@@ -69,8 +70,15 @@ console.log('  ' + pad('well-posed (clean)', 30) + lpad(clean.length, 3) + lpad(
 
 const recall = tp / (tp + fn);
 const precision = (tp + fp.length) ? tp / (tp + fp.length) : 1;
-console.log(`\n  recall    ${tp}/${tp + fn} hand-labelled defects caught = ${(100 * recall).toFixed(0)}%`);
-console.log(`  precision ${tp}/${tp + fp.length} flagged questions truly defective = ${(100 * precision).toFixed(0)}%`);
+// Wilson score interval: honest bounds on a proportion from a small sample.
+const wilson = (k, n, z = 1.96) => {
+  if (!n) return '[—]';
+  const p = k / n, d = 1 + z * z / n, c = p + z * z / (2 * n);
+  const m = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+  return `[${Math.round(100 * Math.max(0, (c - m) / d))}-${Math.round(100 * Math.min(1, (c + m) / d))}%]`;
+};
+console.log(`\n  recall    ${tp}/${tp + fn} hand-labelled defects caught = ${(100 * recall).toFixed(0)}%  95% CI ${wilson(tp, tp + fn)}`);
+console.log(`  precision ${tp}/${tp + fp.length} flagged questions truly defective = ${(100 * precision).toFixed(0)}%  95% CI ${wilson(tp, tp + fp.length)}`);
 
 if (fp.length) {
   console.log('\n  False positives:');

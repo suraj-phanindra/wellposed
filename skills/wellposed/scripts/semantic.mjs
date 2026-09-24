@@ -37,10 +37,18 @@ export const DEFAULT_MODEL = 'jev-latest';
  * decimals, so both endpoints occur in practice.
  */
 export const LOW = 0.35;
-// Lowered from 0.65 on 2026-09-21 after the first corpus measurement: precision
-// held at 100% (0 false alarms on 35 adversarial negatives) at every threshold
-// down to 0.30, while recall rose from 24/35 to 28/35 at 0.50. 0.50 was chosen
-// over 0.30 to keep a genuine uncertain band rather than fit 70 items.
+// Lowered from 0.65 on 2026-09-21. The sweep that justified it was vacuous:
+// negatives below LOW produced no finding, were recorded as null, and so counted
+// as "no false alarm" at every threshold by construction.
+//
+// Re-measured 2026-09-24 with every answered probability recorded (29 of 35
+// negatives scored; 6 gated off, correctly counted as not fired):
+//   zero false alarms at every threshold from 0.35 to 0.80;
+//   the first false alarm appears at 0.30 (one negative at pDefect 0.34);
+//   at 0.50, recall 32/35 [78-97%], precision 32/32 [89-100%], Wilson 95%.
+// So 0.50 stands, on a stated margin: the nearest negative sits 0.16 below it.
+// 0.35 would buy two more true positives and leave a 0.01 margin, which is
+// fitting 70 items rather than choosing a threshold.
 export const HIGH = 0.50;
 /** Request policy for the review calls. All overridable via opts. */
 export const TIMEOUT_MS = 30_000;
@@ -227,6 +235,11 @@ export async function semanticLint(req, opts = {}) {
   const doFetch = opts.fetchImpl ?? globalThis.fetch;
   const entries = Object.entries(req.questions ?? {});
   const findings = [];
+  // Every check that was asked and answered, whether or not it produced a
+  // finding. A finding only exists at or above LOW, so anything scored from
+  // findings alone never sees a confident "no defect" — which made an earlier
+  // precision-vs-threshold sweep report 100% at every threshold by construction.
+  const raw = [];
   const usage = { input_tokens: 0, output_tokens: 0 };
   let calls = 0;
 
@@ -270,11 +283,12 @@ export async function semanticLint(req, opts = {}) {
       if (typeof p !== 'number') continue;
       answered++;
       const pDefect = c.defectWhen ? p : 1 - p;
+      raw.push({ questionId: id, rule: c.id, p, pDefect });
       if (pDefect > HIGH) {
-        out.push({ rule: c.id, severity: 'warn', questionId: id, probability: p,
+        out.push({ rule: c.id, severity: 'warn', questionId: id, probability: p, pDefect,
                    message: `Question "${id}" ${c.message(p)}.`, fix: c.fix, doc: c.doc });
       } else if (pDefect >= LOW) {
-        out.push({ rule: c.id, severity: 'info', questionId: id, probability: p,
+        out.push({ rule: c.id, severity: 'info', questionId: id, probability: p, pDefect,
                    message: `Question "${id}" — uncertain: ${c.message(p)}. jev is near 0.5 here, which means genuine ambiguity rather than a mild verdict.`,
                    fix: c.fix, doc: c.doc });
       }
@@ -305,5 +319,5 @@ export async function semanticLint(req, opts = {}) {
 
   // M13: `--config` overrides were threaded in here and silently dropped, so
   // turning a semantic rule off did nothing and said nothing.
-  return { findings: applyOverrides(findings, opts.rules), calls, usage };
+  return { findings: applyOverrides(findings, opts.rules), calls, usage, raw };
 }

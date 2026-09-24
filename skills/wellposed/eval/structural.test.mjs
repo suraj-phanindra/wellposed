@@ -401,3 +401,160 @@ test('a bundled-judgment exemption covers enumerated evidence and quotes', () =>
   assert.ok(rules(lintQuestion('q', { type: 'noul', instructions: 'Is the rent within budget and are pets allowed?' }))
     .includes('jev/bundled-judgments'), 'real bundling must still fire');
 });
+
+// --- every file argument is linted ----------------------------------------
+// `lint a.json b.json` used to lint a.json only and exit on it, so a CI glob of
+// thirty files went green having checked one.
+
+test('every positional file is linted and the exit code covers all of them', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const cli = join(here, '..', 'scripts', 'wellposed.mjs');
+  const failing = join(here, '..', 'examples', 'support-ticket.json');
+  const dir = mkdtempSync(join(tmpdir(), 'wellposed-'));
+  const clean = join(dir, 'clean.json');
+  writeFileSync(clean, JSON.stringify({ model: 'jev-latest', state: { msg: 'x' },
+    questions: { a: { type: 'noul', instructions: 'Does `msg` ask for a refund?' },
+                 b: { type: 'noul', instructions: 'Is `msg` about billing?' } } }));
+  try {
+    const run = (...a) => spawnSync(process.execPath, [cli, ...a], { encoding: 'utf8', env: { ...process.env, NO_COLOR: '1' } });
+    assert.equal(run('lint', clean, failing).status, 1, 'an error in the SECOND file must fail the run');
+    assert.equal(run('lint', clean, clean).status, 0);
+    assert.equal(run('lint', clean, join(dir, 'missing.json')).status, 2, 'a missing file is a usage error');
+
+    const multi = JSON.parse(run('lint', clean, failing, '--json').stdout);
+    assert.equal(multi.files.length, 2);
+    assert.equal(multi.ok, false);
+    assert.deepEqual(multi.files.map((f) => f.ok), [true, false]);
+
+    const single = JSON.parse(run('lint', failing, '--json').stdout);
+    assert.deepEqual(Object.keys(single).sort(), ['counts', 'findings', 'ok', 'semantic'],
+      'single-file --json must keep its original shape');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Score levels that cross two dimensions --------------------------------
+
+test('crossed dimensions: the same subject re-rated at every level fires', async () => {
+  const { crossedDimensions } = await import('../scripts/structural.mjs');
+  const crossed = [
+    'description is unreadable and the diff has no tests',
+    'description is vague and test coverage is thin',
+    'description is adequate and coverage is partial',
+    'description is clear and most changed paths are tested',
+  ];
+  assert.equal(crossedDimensions(crossed)?.subject, 'description');
+  const f = lintQuestion('s', { type: 'score', instructions: 'Rate this PR.', criteria: crossed });
+  assert.equal(sev(f, 'score/crossed-dimensions'), 'warn');
+});
+
+test('crossed dimensions: a severity ladder of co-varying clauses stays quiet', async () => {
+  const { crossedDimensions } = await import('../scripts/structural.mjs');
+  // Two clauses per level, but a different situation at each rung. This is what
+  // TypeSafe's docs ask levels to look like, and a keyword rule flags it.
+  const ladders = [
+    ['nothing is blocked - a question or a cosmetic issue',
+     'a task is slower, but the normal path still works',
+     'a task is blocked and a documented workaround is available',
+     'a core workflow is blocked and the only workaround is manual',
+     'the customer cannot operate at all and no workaround exists'],
+    ['Minor: a non-critical feature is degraded for some users',
+     'Major: a core workflow is broken for many users and the only workaround is slow',
+     'Critical: the product is unusable for every user on the account'],
+    ['clear and concise', 'mostly clear', 'confusing', 'unreadable'],
+    ['can wait weeks', 'should be handled this week', 'needs attention today'],
+  ];
+  for (const levels of ladders) {
+    assert.equal(crossedDimensions(levels), null, `false positive on: ${levels[0]}`);
+  }
+});
+
+// --- rules prompted by comparing against simota/tenbin ----------------------
+
+test('forbidden paths: key, dotted suffix and full path, silent when unconfigured', async () => {
+  const { forbiddenPaths } = await import('../scripts/structural.mjs');
+  const state = { customer: { name: 'A', billing: { card_number: '4111' } },
+                  records: [{ ssn: '123' }, { note: 'x' }], api_key: 'k' };
+  assert.deepEqual(forbiddenPaths(state, undefined), [], 'silent with no list configured');
+  assert.deepEqual(forbiddenPaths(state, ['card_number']), ['customer.billing.card_number']);
+  assert.deepEqual(forbiddenPaths(state, ['billing.card_number']), ['customer.billing.card_number']);
+  assert.deepEqual(forbiddenPaths(state, ['SSN']), ['records[].ssn'], 'case-insensitive, and reaches into arrays');
+  assert.deepEqual(forbiddenPaths(state, ['api_key']), ['api_key']);
+  assert.deepEqual(forbiddenPaths(state, ['name.card']), [], 'a suffix must match whole segments');
+  const r = lintRequest({ model: 'm', state, questions: { q: { type: 'noul', instructions: 'Is `customer.name` set?' } } },
+    { forbidden: ['card_number'] });
+  assert.equal(sev(r.findings, 'state/forbidden-path'), 'error');
+});
+
+test('id-only semantics: a two-word Noul with no criteria leans on a key the model never sees', () => {
+  assert.equal(sev(lintQuestion('refund_requested', { type: 'noul', instructions: 'refund?' }), 'question/id-only-semantics'), 'warn');
+  assert.ok(!rules(lintQuestion('r', { type: 'noul', instructions: 'Does the customer ask for a refund?' })).includes('question/id-only-semantics'));
+  assert.ok(!rules(lintQuestion('r', { type: 'noul', instructions: 'refund?',
+    criteria: { true: 'The customer asks for money back.', false: 'No refund is requested.' } })).includes('question/id-only-semantics'),
+    'criteria carry the meaning, so a terse instruction is fine');
+});
+
+test('criteria-inverted: a negated true is flagged, unless the question is itself negative', () => {
+  const inverted = { type: 'noul', instructions: 'Does the customer ask for a refund?',
+    criteria: { true: 'No refund is requested.', false: 'The customer asks for their money back.' } };
+  assert.equal(sev(lintQuestion('q', inverted), 'noul/criteria-inverted'), 'info');
+  const framed = { type: 'noul', instructions: 'Is the record free of personal data?',
+    criteria: { true: 'No personal data appears.', false: 'Names, emails or IDs appear.' } };
+  assert.ok(!rules(lintQuestion('q', framed)).includes('noul/criteria-inverted'), 'negatively framed question: negated true is correct');
+  const normal = { type: 'noul', instructions: 'Does the customer ask for a refund?',
+    criteria: { true: 'The customer asks for money back.', false: 'No refund is requested.' } };
+  assert.ok(!rules(lintQuestion('q', normal)).includes('noul/criteria-inverted'));
+});
+
+test('numeric-only Score levels are flagged; described levels are not', () => {
+  for (const criteria of [['1', '2', '3', '4', '5'], ['1-3', '4-6', '7-10'], ['0', '0.5', '1']]) {
+    assert.equal(sev(lintQuestion('s', { type: 'score', instructions: 'How urgent?', criteria }), 'score/numeric-only-levels'), 'warn',
+      JSON.stringify(criteria));
+  }
+  for (const criteria of [['can wait weeks', 'needs attention today'], ['1 - can wait', '5 - on fire'], ['low', 'high']]) {
+    assert.ok(!rules(lintQuestion('s', { type: 'score', instructions: 'How urgent?', criteria })).includes('score/numeric-only-levels'),
+      JSON.stringify(criteria));
+  }
+});
+
+test('counting inside a Score is advisory, because bucketing is the documented fix', () => {
+  const score = { type: 'score', instructions: 'How many bedrooms does this listing advertise?',
+                  criteria: ['studio', 'one or two', 'three or more'] };
+  assert.equal(sev(lintQuestion('s', score), 'jev/counting'), 'info');
+  assert.equal(sev(lintQuestion('n', { type: 'noul', instructions: 'How many bedrooms does this listing advertise?' }), 'jev/counting'), 'warn',
+    'an un-bucketed count is still a warning');
+});
+
+test('a throwaway uid in state is not reported as unreferenced', () => {
+  const f = lintState({ uid: 'run-7:ab12', msg: 'charged twice' }, { q: { type: 'noul', instructions: 'Does `msg` ask for a refund?' } });
+  assert.ok(!rules(f).includes('state/unreferenced-fields'), 'the consistency cookbook tells users to add this field');
+});
+
+test('the CLI honours a forbidden list and rejects a malformed one', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'wellposed.mjs');
+  const dir = mkdtempSync(join(tmpdir(), 'wellposed-'));
+  try {
+    const req = join(dir, 'r.json');
+    writeFileSync(req, JSON.stringify({ model: 'm', state: { msg: 'x', customer: { email: 'a@b.c' } },
+      questions: { a: { type: 'noul', instructions: 'Does `msg` ask for a refund?' },
+                   b: { type: 'noul', instructions: 'Is `customer` a returning buyer?' } } }));
+    const ok = join(dir, 'ok.json'); writeFileSync(ok, JSON.stringify({ forbidden: ['email'] }));
+    const bad = join(dir, 'bad.json'); writeFileSync(bad, JSON.stringify({ forbidden: 'email' }));
+    const run = (cfg) => spawnSync(process.execPath, [cli, 'lint', req, '--config', cfg], { encoding: 'utf8' }).status;
+    assert.equal(run(ok), 1, 'a forbidden field is an error');
+    assert.equal(run(bad), 2, 'a non-array forbidden list is a usage error');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

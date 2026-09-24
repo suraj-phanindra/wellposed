@@ -9,7 +9,7 @@ description: >
   TypeSafe.
 metadata:
   short-description: Write and lint jev requests that mean what you think they mean.
-  version: 0.4.0
+  version: 0.5.0
   homepage: https://github.com/suraj-phanindra/wellposed
 ---
 
@@ -101,6 +101,7 @@ Limits: 64k tokens for state + all questions together, 32k for state + the longe
 
 ```sh
 npx wellposed lint request.json              # free, offline, no API key
+npx wellposed lint requests/*.json           # several files; fails if any has an error
 npx wellposed lint request.json --semantic   # + jev-on-jev checks (needs TYPESAFE_API_KEY)
 npx wellposed rules                          # every rule and where it comes from
 npx wellposed eval                           # score the linter against the labelled corpus
@@ -134,7 +135,13 @@ documented failure mode), and `info` (advisory). Silence a rule whose premise do
 {"rules": {"choice/no-escape-hatch": "off"}}
 ```
 
-passed as `--config wellposed.config.json`.
+passed as `--config wellposed.config.json`. The same file takes a `forbidden` list of field names or
+dotted paths that must never appear in `state` — use it for credentials and personal data, since
+`state` is sent to TypeSafe's API:
+
+```json
+{"forbidden": ["password", "api_key", "ssn", "card_number"]}
+```
 
 ## Reading the answer
 

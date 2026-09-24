@@ -62,7 +62,7 @@ function usage(code = 0, msg) {
   out(`
 ${bold('wellposed')} - lint jev requests before you send them
 
-  ${bold('wellposed lint')} <file.json|->    structural checks (free, offline, no API key)
+  ${bold('wellposed lint')} <file.json ...|->  structural checks (free, offline, no API key)
       -                           read the request from stdin
       --semantic                  also run jev-on-jev semantic checks (needs TYPESAFE_API_KEY)
       --config <file>             JSON config: {"rules": {"<rule-id>": "off"|"info"|"warn"|"error"}}
@@ -174,7 +174,18 @@ async function main() {
     const prev = arr[i - 1] ?? argv[argv.indexOf(a) - 1];
     return prev !== '--config' && prev !== '--max-warnings';
   });
-  const req = readInput(positional[0]);
+  if (positional.length === 0) readInput(undefined); // exits 2 with a usage message
+  if (positional.filter((x) => x === '-').length > 1) {
+    console.error(red('stdin ("-") can only be read once'));
+    process.exit(2);
+  }
+
+  const maxW = opt('max-warnings');
+  if (maxW != null && !Number.isFinite(Number(maxW))) {
+    console.error(red(`--max-warnings expects a number, got "${maxW}"`));
+    process.exit(2);
+  }
+
   const cfgPath = opt('config');
   if (cfgPath && !existsSync(cfgPath)) {
     console.error(red(`no such config file: ${cfgPath}`));
@@ -195,11 +206,69 @@ async function main() {
     }
   }
 
-  const structural = lintRequest(req, { rules: config.rules });
-  const findings = [...structural.findings];
-  let usageTotals = null;
-  let calls = 0;
-  let semanticSkipped = flag('semantic') ? 'not run' : null;
+  if (config.forbidden != null && !(Array.isArray(config.forbidden)
+      && config.forbidden.every((f) => typeof f === 'string' && f.trim()))) {
+    console.error(red('config: "forbidden" must be an array of non-empty field names or dotted paths'));
+    process.exit(2);
+  }
+
+  // Read every input before reporting anything, so a missing or malformed file
+  // is a usage error for the whole run. This used to lint positional[0] only and
+  // exit on it — `wellposed lint *.json` in CI linted one file of thirty and went
+  // green, the worst thing a linter can do.
+  const inputs = positional.map((x) => ({ file: x === '-' ? '(stdin)' : x, req: readInput(x) }));
+  const multi = inputs.length > 1;
+
+  const results = [];
+  for (const { file, req } of inputs) {
+    results.push(await lintOne(req, config, multi ? file : null));
+  }
+
+  const total = { error: 0, warn: 0, info: 0 };
+  const semTotal = { calls: 0, usage: { input_tokens: 0, output_tokens: 0 } };
+  for (const r of results) {
+    for (const k of Object.keys(total)) total[k] += r.counts[k];
+    semTotal.calls += r.semantic.calls;
+    semTotal.usage.input_tokens += r.semantic.usage?.input_tokens ?? 0;
+    semTotal.usage.output_tokens += r.semantic.usage?.output_tokens ?? 0;
+  }
+
+  if (flag('json')) {
+    // One file keeps the original shape, so existing consumers do not break.
+    // Several files add a `files` array and aggregate `ok` / `counts`.
+    const out = multi
+      ? { ok: total.error === 0, counts: total,
+          files: results.map((r, i) => ({ file: inputs[i].file, ok: r.counts.error === 0, ...r })) }
+      : { ok: total.error === 0, counts: total, findings: results[0].findings, semantic: results[0].semantic };
+    console.log(JSON.stringify(out, null, 2));
+  } else {
+    for (const [i, r] of results.entries()) {
+      if (multi) console.log(`\n${bold(inputs[i].file)}`);
+      print(r.findings, { quiet: flag('quiet') });
+      console.log(`  ${dim(summaryLine(r.counts, r.semantic))}\n`);
+    }
+    if (multi) {
+      const failed = results.filter((r) => r.counts.error > 0).length;
+      console.log(`${bold('total')}  ${dim(`${inputs.length} files, ${failed} with errors  ·  ${summaryLine(total, semTotal)}`)}\n`);
+    }
+  }
+
+  if (total.error > 0) process.exit(1);
+  if (maxW != null && total.warn > Number(maxW)) process.exit(1);
+}
+
+function summaryLine(counts, sem) {
+  const parts = [`${counts.error} error`, `${counts.warn} warn`, `${counts.info} info`].join('  ·  ');
+  const tail = sem?.calls
+    ? `  ·  ${sem.calls} jev call${sem.calls > 1 ? 's' : ''}, ${sem.usage.input_tokens} in / ${sem.usage.output_tokens} out`
+    : '';
+  return parts + tail;
+}
+
+/** Structural pass, plus the semantic pass when asked. Never throws on a semantic failure. */
+async function lintOne(req, config, label) {
+  const findings = [...lintRequest(req, { rules: config.rules, forbidden: config.forbidden }).findings];
+  const semantic = { requested: flag('semantic'), skipped: null, calls: 0, usage: null };
 
   if (flag('semantic')) {
     const byQ = new Map();
@@ -212,47 +281,25 @@ async function main() {
     try {
       const sem = await semanticLint(req, { structuralByQuestion: byQ, rules: config.rules });
       findings.push(...sem.findings);
-      usageTotals = sem.usage;
-      calls = sem.calls;
-      semanticSkipped = null;
+      semantic.calls = sem.calls;
+      semantic.usage = sem.usage;
     } catch (e) {
       // The structural pass is free, offline and already complete. Throwing
       // here used to discard it entirely and emit zero bytes under --json,
       // indistinguishable from "errors found".
-      semanticSkipped = e.code === 'NO_API_KEY' ? 'no API key'
+      semantic.skipped = e.code === 'NO_API_KEY' ? 'no API key'
         : e.name === 'TimeoutError' ? 'request timed out'
         : e.message;
       if (!flag('json')) {
-        console.error(`\n  ${yellow('semantic checks skipped')}: ${semanticSkipped}`);
-        console.error(`  ${dim('the structural report below is complete and unaffected')}`);
+        console.error(`\n  ${yellow('semantic checks skipped')}${label ? ` for ${label}` : ''}: ${semantic.skipped}`);
+        console.error(`  ${dim('the structural report is complete and unaffected')}`);
       }
     }
   }
 
   const counts = { error: 0, warn: 0, info: 0 };
   for (const f of findings) counts[f.severity]++;
-
-  if (flag('json')) {
-    console.log(JSON.stringify(
-      { ok: counts.error === 0, counts, findings,
-        semantic: { requested: flag('semantic'), skipped: semanticSkipped, calls, usage: usageTotals } },
-      null, 2));
-  } else {
-    print(findings, { quiet: flag('quiet') });
-    const parts = [`${counts.error} error`, `${counts.warn} warn`, `${counts.info} info`];
-    const tail = calls
-      ? dim(`  ·  ${calls} jev call${calls > 1 ? 's' : ''}, ${usageTotals.input_tokens} in / ${usageTotals.output_tokens} out`)
-      : '';
-    console.log(`  ${dim(parts.join('  ·  '))}${tail}\n`);
-  }
-
-  const maxW = opt('max-warnings');
-  if (maxW != null && !Number.isFinite(Number(maxW))) {
-    console.error(red(`--max-warnings expects a number, got "${maxW}"`));
-    process.exit(2);
-  }
-  if (counts.error > 0) process.exit(1);
-  if (maxW != null && counts.warn > Number(maxW)) process.exit(1);
+  return { counts, findings, semantic };
 }
 
 main().catch((e) => {

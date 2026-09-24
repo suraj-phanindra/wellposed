@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/wellposed)](https://www.npmjs.com/package/wellposed) [![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Offline linter and agent skill for jev requests: 40 structural checks with no model call (missing
+Offline linter and agent skill for jev requests: 45 structural checks with no model call (missing
 none-of-the-above options, broken state paths, wrong criteria shapes), plus jev-on-jev checks for what
 structure cannot decide, with labelled corpora that score both layers.
 
@@ -111,7 +111,7 @@ to classify these tickets," the agent already knows:
 
 ### 2. A linter that reads your request and finds problems — free, instantly, offline
 
-No API key, no network, no waiting. It reads the JSON and checks 40 rules.
+No API key, no network, no waiting. It reads the JSON and checks 45 rules.
 
 **Things that are definitely broken** (these fail the check):
 
@@ -124,6 +124,10 @@ No API key, no network, no waiting. It reads the JSON and checks 40 rules.
 - **a broken reference** — your question mentions `` `ticket.assigned_agent.name` `` but there is
   nothing at that path in your data. This one is *provably* wrong: no opinion required, just walking
   the JSON.
+- **a field you said must never leave your system** — list names like `card_number` or `ssn` under
+  `forbidden` in your config, and any request whose data contains one fails. Your data goes to a
+  third-party API; a linter that runs before the call is the right place to catch that. Silent until
+  you configure it, so it has no false positives by construction.
 
 **Things that are probably wrong** (warnings):
 
@@ -132,10 +136,19 @@ No API key, no network, no waiting. It reads the JSON and checks 40 rules.
 - asking jev to count, do arithmetic, or compare dates
 - two judgments crammed into one question
 - double negatives, which measurably confuse it
+- **a rating whose levels are just numbers** — `["1","2","3","4","5"]`. The model evaluates each level
+  on its own and never sees its number, so it has nothing to match and spreads its answer across all
+  of them
+- **a rating that secretly measures two things** — every level reads "the description is X and the
+  tests are Y". A middle answer can't tell you which one moved
+- **a question that only makes sense if you read its name** — `refund_requested: "refund?"`. The name
+  is never sent to the model; it sees only "refund?"
 
 **Suggestions** (just advice):
 
 - Score levels that are single vague words like "weak / okay / strong" instead of real situations
+- a yes/no whose "yes" description starts with "No…" — check you haven't flipped the meaning, or your
+  code will read every answer backwards
 - only one question in the request — you're leaving the batching discount on the table
 - **data you're sending that no question ever mentions** — dead weight, and extra irrelevant data
   measurably makes jev *less* accurate
@@ -165,7 +178,7 @@ first; expensive-and-accurate resolves the leftovers.
 
 ### 4. A test set that proves the linter works
 
-This is the part most tools skip. wellposed ships the 76 questions, hand-labelled, plus the
+This is the part most tools skip. wellposed ships 79 hand-labelled questions, plus the
 grading rubric written **before** anything was generated, so the goalposts couldn't move afterward.
 
 Run `wellposed eval` and it scores itself:
@@ -175,6 +188,7 @@ Run `wellposed eval` and it scores itself:
   ----------------------------------------------
   no-escape-hatch                 9      9/9   fully covered
   degree-as-noul                  6      6/6   fully covered
+  crossed-dimensions              1      1/1   fully covered
   jev-date-comparison             2      2/2   fully covered
   jev-counting / arithmetic       2      2/2   fully covered
   jev-double-negative             1      1/1   fully covered
@@ -182,16 +196,17 @@ Run `wellposed eval` and it scores itself:
   overlapping-choice-options      1      0/1   deferred to the semantic layer
   unanswerable-from-state         2      0/2   deferred to the semantic layer
 
-  recall    22/26 = 85%      precision  22/24 = 92%
+  recall    23/27 = 85% [68-94%]      precision  23/25 = 92% [75-98%]
 ```
 
 In plain terms: **it catches 85% of the known problems, and 92% of what it flags is genuinely a
-problem.** Those two figures are exactly what `wellposed eval` prints; the table above them is an
+problem.** The bracketed ranges are 95% confidence intervals, and they are wide because the corpus is
+small — read the point estimates accordingly. Those figures are exactly what `wellposed eval` prints; the table above them is an
 abridged view, since the real output also counts the clean questions and names its own false
 positives. Run the command for the full version. If a future change makes the linter worse, the
 numbers drop and you see it.
 
-Plus 35 unit tests. Three exist specifically because we sent those exact broken requests to the real
+Plus 48 unit tests. Three exist specifically because we sent those exact broken requests to the real
 API and recorded what it said.
 
 **The semantic layer has its own corpus**, added later than it should have been. 70 items, seven
@@ -209,15 +224,25 @@ defect but are actually fine. `npm run eval:semantic` scores it with one live je
   options-not-exclusive           10      5/5        5/5       0
   unanswerable-from-state         10      5/5        5/5       0
 
-  recall    32/35 = 91%      precision  32/32 = 100%
+  recall    32/35 = 91% [78-97%]      precision  32/32 = 100% [89-100%]
 ```
 
 The first run of this corpus scored 69%, and it found one check — `degree-as-noul` — at **0/5**. It had
 been written to detect questions that literally ask "how much", and missed the whole real failure
 class: yes/no questions over a gradable property with no stated cutoff ("is this pull request
-risky?"). Rewording it took that check to 5/5. The same run showed precision holding at 100% down to a
-threshold of 0.30, so the warn threshold moved from 0.65 to 0.50 and picked up four more true
-positives for free.
+risky?"). Rewording it took that check to 5/5, and the warn threshold moved from 0.65 to 0.50 for four
+more true positives.
+
+That threshold move was first justified by a sweep that could not have come out any other way. The
+harness only recorded a probability when a check produced a finding, and findings only exist above the
+uncertain band — so all 35 negatives were `null`, and "no false alarms at any threshold" was true by
+construction. Re-measured with every answer recorded: no false alarms at any threshold from 0.35 up,
+the first one at 0.30, and the closest negative sitting at 0.34 — 0.16 below the warn line. The
+threshold stands; the reason it stands is now something you can check with `--dump` then `--sweep`.
+
+The intervals are wide because the corpus is small: recall 91% [78–97%], precision 100% [89–100%],
+Wilson 95%. The headline numbers are point estimates from 35 positives and 35 negatives, and should be
+read that way.
 
 ## Install
 
@@ -259,6 +284,7 @@ Node ≥ 18, zero dependencies. No API key needed for the structural checks.
 
 ```sh
 npx wellposed lint request.json               # structural: free, offline, no API key
+npx wellposed lint requests/*.json            # every file; fails if any of them has an error
 npx wellposed lint request.json --semantic    # + jev-on-jev checks (needs TYPESAFE_API_KEY)
 npx wellposed lint - < request.json           # reads stdin
 npx wellposed rules                           # every rule and where it comes from
@@ -269,14 +295,23 @@ Already installed as a skill and want to run it offline? The CLI ships inside th
 `find ~/.claude/plugins ~/.agents/skills ~/.codex/skills -name wellposed.mjs -path '*wellposed/scripts/*' | head -1`
 and call `node <that path>` instead.
 
-Exit code is `1` when errors are found, so it drops into CI unchanged. `--json` for machine output,
-`--max-warnings <n>` to fail on warnings too.
+Exit code is `1` when any file has errors, so it drops into CI unchanged. `--json` for machine output
+(with several files it adds a `files` array alongside the aggregate `ok` and `counts`),
+`--max-warnings <n>` to fail on warnings too, counted across all files.
 
 Disagree with a rule? Turn it off. If your option list really is exhaustive, that warning is noise and
 you should silence it:
 
 ```json
 { "rules": { "choice/no-escape-hatch": "off" } }
+```
+
+The same file holds a deny-list for data that must never reach the API. Each entry matches a field
+name anywhere, a dotted suffix, or a full path — `card_number` catches
+`customer.billing.card_number` and `records[].card_number` alike:
+
+```json
+{ "forbidden": ["password", "api_key", "ssn", "card_number"] }
 ```
 
 ```sh
@@ -323,6 +358,13 @@ A working example ships at
 - Codex behaviour was verified against Codex as of **2026-09-17**. Older builds may need
   `codex --enable skills`.
 
+## Credit
+
+Four rules — the `forbidden` deny-list, `question/id-only-semantics`, `score/numeric-only-levels` and
+`noul/criteria-inverted` — were prompted by reading [simota/tenbin](https://github.com/simota/tenbin),
+which covers overlapping ground as an MCP server. The implementations here are independent, and the
+comparison also turned up two bugs in wellposed itself, which are fixed.
+
 ## Not affiliated with TypeSafe
 
 This is an independent tool. TypeSafe, System One and jev are theirs; the rules here are drawn from
@@ -333,7 +375,7 @@ docs and the one most often skipped.
 ## Development
 
 ```sh
-npm test                 # 35 unit tests, zero dependencies
+npm test                 # 48 unit tests, zero dependencies
 npm run eval             # score the linter against the corpus
 npm run lint:example     # lint the bundled example
 ```

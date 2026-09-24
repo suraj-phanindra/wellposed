@@ -32,6 +32,46 @@ const opt = (n, d) => {
   return i >= 0 ? argv[i + 1] : d;
 };
 
+/** Wilson score interval: honest bounds on a proportion from a small sample. */
+function wilson(k, n, z = 1.96) {
+  if (!n) return [0, 1];
+  const p = k / n, d = 1 + z * z / n;
+  const c = p + z * z / (2 * n), m = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+  return [Math.max(0, (c - m) / d), Math.min(1, (c + m) / d)];
+}
+const pct = (x) => `${Math.round(100 * x)}%`;
+const ci = (k, n) => { const [lo, hi] = wilson(k, n); return `[${pct(lo)}-${pct(hi)}]`; };
+
+if (argv.includes('--sweep')) {
+  // Offline: recompute recall / precision / abstention at other thresholds from
+  // a previous --dump. Every row carries pDefect, including the negatives, so a
+  // false positive at a lower threshold is actually visible.
+  const dumpPath = join(dirname(fileURLToPath(import.meta.url)), 'semantic-raw.json');
+  if (!existsSync(dumpPath)) { console.error('\n  no dump; run with --dump first\n'); process.exit(2); }
+  const rows = JSON.parse(readFileSync(dumpPath, 'utf8'));
+  if (!rows.every((r) => 'pDefect' in r)) {
+    console.error('\n  this dump predates pDefect and cannot be swept honestly; re-run with --dump\n');
+    process.exit(2);
+  }
+  const LOW_BAND = 0.35;
+  const P = rows.filter((r) => r.has_defect), N = rows.filter((r) => !r.has_defect);
+  console.log(`\n  sweep over ${rows.length} items (${P.length} positive, ${N.length} negative), from the last --dump\n`);
+  console.log('  ' + 'warn above'.padEnd(12) + 'recall'.padStart(8) + 'precision'.padStart(11) + '  precision 95% CI'.padEnd(20) + 'false alarms'.padStart(13));
+  console.log('  ' + '-'.repeat(66));
+  for (const th of [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.80]) {
+    const fired = (r) => r.pDefect != null && r.pDefect > th;
+    const tp = P.filter(fired).length, fp = N.filter(fired).length;
+    console.log('  ' + th.toFixed(2).padEnd(12) + `${tp}/${P.length}`.padStart(8)
+      + (tp + fp ? `${tp}/${tp + fp}` : '-').padStart(11) + ('  ' + ci(tp, tp + fp)).padEnd(20) + String(fp).padStart(13));
+  }
+  const band = (r) => r.pDefect != null && r.pDefect >= LOW_BAND && r.pDefect <= 0.50;
+  console.log(`\n  in the uncertain band ${LOW_BAND}-0.50 today: ${rows.filter(band).length}/${rows.length} items routed to a human`);
+  const negs = N.map((r) => r.pDefect).filter((x) => x != null).sort((a, b) => b - a);
+  console.log(`  highest defect probability on any negative: ${negs.length ? negs[0].toFixed(2) : 'n/a'} `
+    + `(top five: ${negs.slice(0, 5).map((x) => x.toFixed(2)).join(', ')})\n`);
+  process.exit(0);
+}
+
 if (!existsSync(CORPUS)) {
   console.error(`\n  no semantic corpus at ${CORPUS}\n`);
   process.exit(2);
@@ -76,9 +116,11 @@ for (const [n, it] of items.entries()) {
   );
 
   let findings = [];
+  let cells = [];
   try {
     const r = await semanticLint(req, { structuralByQuestion: new Map([[qid, structural]]) });
     findings = r.findings;
+    cells = r.raw;
     calls += r.calls;
     usage.input_tokens += r.usage.input_tokens;
     usage.output_tokens += r.usage.output_tokens;
@@ -89,7 +131,11 @@ for (const [n, it] of items.entries()) {
 
   const rule = ruleFor(it.defect);
   const hit = findings.find((f) => f.rule === rule);
-  raw.push({ id: it.id, defect: it.defect, has_defect: it.has_defect, p: hit?.probability ?? null });
+  // Take the probability from the raw cell, not from `hit`: a finding exists only
+  // at or above LOW, so negatives would otherwise all be recorded as null.
+  const cell = cells.find((c) => c.rule === rule);
+  raw.push({ id: it.id, defect: it.defect, has_defect: it.has_defect,
+             asked: Boolean(cell), p: cell?.p ?? null, pDefect: cell?.pDefect ?? null });
   const fired = hit?.severity === 'warn';
   const uncertain = hit?.severity === 'info';
 
@@ -118,8 +164,8 @@ for (const [check, s] of [...stats.entries()].sort()) {
 console.log('  ' + '-'.repeat(62));
 const rec = T.tp + T.fn ? T.tp / (T.tp + T.fn) : 0;
 const pre = T.tp + T.fp ? T.tp / (T.tp + T.fp) : 0;
-console.log(`\n  recall    ${T.tp}/${T.tp + T.fn} = ${(100 * rec).toFixed(0)}%`);
-console.log(`  precision ${T.tp}/${T.tp + T.fp} = ${(100 * pre).toFixed(0)}%`);
+console.log(`\n  recall    ${T.tp}/${T.tp + T.fn} = ${(100 * rec).toFixed(0)}%  95% CI ${ci(T.tp, T.tp + T.fn)}`);
+console.log(`  precision ${T.tp}/${T.tp + T.fp} = ${(100 * pre).toFixed(0)}%  95% CI ${ci(T.tp, T.tp + T.fp)}`);
 console.log(`  cost      ${calls} calls, ${usage.input_tokens.toLocaleString()} in / ${usage.output_tokens.toLocaleString()} out`);
 
 if (misses.length) {

@@ -1,7 +1,13 @@
 {
-  "$comment": "Pass with --config. Silence or re-level any rule whose premise does not hold for your data. Rule ids come from `wellposed rules`.",
+  "$comment": "Pass with --config. `rules` silences or re-levels any rule whose premise does not hold for your data (ids from `wellposed rules`). `forbidden` lists field names or dotted paths that must never appear in state, since state is sent to TypeSafe's API.",
   "rules": {
     "choice/no-escape-hatch": "warn",
     "request/single-question": "off"
-  }
+  },
+  "forbidden": [
+    "password",
+    "api_key",
+    "ssn",
+    "card_number"
+  ]
 }

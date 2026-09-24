@@ -1,6 +1,6 @@
 {
   "name": "wellposed",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Lint your jev requests before they come back confidently wrong.",
   "type": "module",
   "bin": {
@@ -13,7 +13,8 @@
   "files": [
     "skills/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "!skills/wellposed/eval/semantic-raw.json"
   ],
   "engines": {
     "node": ">=18"

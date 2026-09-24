@@ -136,6 +136,78 @@ const RE_DEGREE_QUANT = /\bhow (much|many years)\b/i;
 const RE_DEGREE_IMPERATIVE = /(?:^|[.;]\s*|please\s+)(rate|score|grade)\s+(the|this|how|each)\b/i;
 const MATRIX_VERB = /\b(mention|state|say|said|ask|tell|told|report|include|indicate|specify|dispute|claim|note|record|show|list|describ)\w*\b/i;
 
+// Two copular clauses joined by a conjunction, inside a single Score level.
+const LEVEL_COPULA = '(?:is|are|was|were|has|have|had)';
+const RE_TWO_CLAUSE = new RegExp(
+  `\\b${LEVEL_COPULA}\\b[^,;:]{1,60}?\\b(?:and|but|while|yet)\\b[^,;:]{1,60}?\\b${LEVEL_COPULA}\\b`, 'i');
+
+/** The subject of a level's first clause, with any "Label:" prefix removed. */
+function levelSubject(level) {
+  const s = level.replace(/^\s*[A-Za-z][\w ]{0,20}?\s*[:\u2014\u2013-]\s+/, '');
+  const m = s.match(new RegExp(`^\\s*(.{1,40}?)\\s+\\b${LEVEL_COPULA}\\b`, 'i'));
+  return m ? m[1].trim().toLowerCase() : null;
+}
+
+/**
+ * Two independent dimensions crossed into one scale, e.g. every level reads
+ * "description is X and coverage is Y". A mid-scale answer cannot say which
+ * dimension moved.
+ *
+ * Deliberately NOT a keyword rule. Counting "and"/"or" in levels fires on nearly
+ * every well-formed severity ladder, because concrete situations ("a task is
+ * blocked and a workaround exists") routinely have two clauses that CO-vary. The
+ * signature of the defect is structural: most levels have two clauses AND share
+ * the same leading subject, so the scale is re-rating the same two things rather
+ * than describing a different situation at each rung.
+ */
+export function crossedDimensions(levels) {
+  if (!Array.isArray(levels) || levels.length < 3) return null;
+  const strs = levels.filter((l) => typeof l === 'string');
+  if (strs.length < 3) return null;
+  const need = Math.max(2, Math.ceil(strs.length * 0.6));
+  const twoClause = strs.filter((l) => RE_TWO_CLAUSE.test(l));
+  if (twoClause.length < need) return null;
+  const tally = new Map();
+  for (const l of strs) {
+    const subj = levelSubject(l);
+    if (subj) tally.set(subj, (tally.get(subj) ?? 0) + 1);
+  }
+  const [subject, n] = [...tally.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
+  return n >= need ? { subject, levels: n, of: strs.length } : null;
+}
+
+// A Noul criterion that opens with a negation, and instructions that are
+// themselves negatively framed (in which case a negated `true` is correct).
+const RE_NEG_START = /^\s*(?:no|not|none|never|nothing|without|neither|cannot|can'?t|isn'?t|doesn'?t|does not|is not)\b/i;
+const RE_NEG_FRAMED = /\b(?:not|no|never|without|free of|absent|lacks?|missing|none)\b/i;
+// Bare numbers, or a numeric range, and nothing else.
+const RE_NUMERIC_LEVEL = /^\s*[-+]?\d+(?:\.\d+)?\s*(?:(?:-|\u2013|to)\s*[-+]?\d+(?:\.\d+)?)?\s*$/i;
+
+/**
+ * Paths in `state` that match a user-supplied deny-list. `state` is sent to a
+ * third-party endpoint, so a field like `customer.card_number` is provable from
+ * the JSON alone and invisible in the answer. An entry matches a key anywhere
+ * (`card_number`), a dotted suffix (`billing.card_number`) or a full path.
+ */
+export function forbiddenPaths(state, forbidden) {
+  if (!Array.isArray(forbidden) || !forbidden.length || state == null || typeof state !== 'object') return [];
+  const deny = forbidden.map((f) => String(f).toLowerCase());
+  const hits = new Set();
+  const walk = (v, path, depth) => {
+    if (depth > 12 || v == null || typeof v !== 'object') return;
+    for (const [k, x] of Object.entries(v)) {
+      const here = Array.isArray(v) ? `${path}[]` : (path ? `${path}.${k}` : k);
+      if (!Array.isArray(v)) {
+        const lp = here.toLowerCase(), lk = String(k).toLowerCase();
+        if (deny.some((f) => lk === f || lp === f || lp.endsWith(`.${f}`))) hits.add(here);
+      }
+      walk(x, here, depth + 1);
+    }
+  };
+  walk(state, '', 0);
+  return [...hits];
+}
+
 /** Degree detection with context, returning the matched phrase or null. */
 export function degreeMatch(text) {
   const core = text.match(RE_DEGREE_CORE);
@@ -183,6 +255,7 @@ export const RULES = {
   'score/too-few-levels': { severity: 'error', source: 'docs: primitives/score' },
   'score/too-many-levels': { severity: 'error', source: 'verified: live API 400 (max 10)' },
   'state/broken-path': { severity: 'error', source: 'deterministic: path does not resolve' },
+  'state/forbidden-path': { severity: 'error', source: 'your config: deny-listed field names or paths' },
   'state/wrong-type': { severity: 'error', source: 'verified: live API 422' },
   'choice/degenerate': { severity: 'warn', source: 'answer is predetermined' },
   'choice/no-escape-hatch': { severity: 'warn', source: 'measured: wrong answer at confidence 1.00' },
@@ -194,6 +267,10 @@ export const RULES = {
   'jev/double-negative': { severity: 'warn', source: 'jaggedness: indirection costs accuracy' },
   'noul/degree-question': { severity: 'warn', source: 'docs: use a Score for degree' },
   'noul/unexpected-criteria-keys': { severity: 'warn', source: 'only true/false are meaningful' },
+  'question/id-only-semantics': { severity: 'warn', source: 'docs: the question key is never sent to the model' },
+  'score/crossed-dimensions': { severity: 'warn', source: 'blind corpus: 1/1 caught, 0 of 26 other Score questions flagged' },
+  'score/numeric-only-levels': { severity: 'warn', source: 'docs: numbers-only levels give nothing to match' },
+  'noul/criteria-inverted': { severity: 'info', source: 'jaggedness: inverted true/false degrades answers' },
   'request/single-question': { severity: 'info', source: 'docs: batching is ~12x cheaper' },
   'score/bare-levels': { severity: 'info', source: 'docs: levels should be concrete situations' },
   'state/flat-string': { severity: 'info', source: 'docs: prefer named fields' },
@@ -269,6 +346,21 @@ export function lintQuestion(id, q, opts = {}) {
 
   const text = textOf(q.instructions);
 
+  // [docs] The question key "is not sent to the underlying model and is not used
+  // in inference." A two-word instruction with no criteria means the meaning
+  // lives in the key — `refund_requested: "refund?"` — and jev sees only "refund?".
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const noCriteria = q.criteria == null
+    || (typeof q.criteria === 'object' && Object.keys(q.criteria).length === 0);
+  if (hasInstr && words < 3 && noCriteria) {
+    out.push(finding('question/id-only-semantics', 'warn',
+      `Question "${id}" has ${words}-word instructions ("${text.trim()}") and no criteria. The key "${id}" is never sent to the model, so jev sees only "${text.trim()}".`, {
+        ...at,
+        fix: 'Put the full condition in the instructions, or add criteria describing what each answer means.',
+        doc: 'https://docs.typesafe.ai/api',
+      }));
+  }
+
   // ---- per-primitive shape ---------------------------------------------
   if (q.type === 'noul') {
     // [verified] live API 422 when criteria is a list
@@ -283,6 +375,21 @@ export function lintQuestion(id, q, opts = {}) {
       if (bad.length) {
         out.push(finding('noul/unexpected-criteria-keys', 'warn',
           `Noul "${id}" has criteria keys ${JSON.stringify(bad)}; only "true" and "false" are meaningful.`, at));
+      }
+    }
+    if (isPlainObject(q.criteria)) {
+      const tt = textOf(q.criteria.true), ff = textOf(q.criteria.false);
+      // jaggedness: "a Noul where true maps to no and false maps to yes will
+      // perform worse", and code reading the probability then inverts every
+      // threshold. Info, not warn: a negatively framed question ("Is the record
+      // free of PII?") makes a negated `true` correct, and is skipped here.
+      if (tt && ff && RE_NEG_START.test(tt) && !RE_NEG_START.test(ff) && !RE_NEG_FRAMED.test(text)) {
+        out.push(finding('noul/criteria-inverted', 'info',
+          `Noul "${id}" has criteria.true opening with a negation ("${tt.trim().slice(0, 50)}") while criteria.false does not. Check the polarity: P(yes) may mean the opposite of what your code expects.`, {
+            ...at,
+            fix: 'Make criteria.true describe the case the instructions ask about.',
+            doc: 'https://docs.typesafe.ai/model-jaggedness/jev-1.13',
+          }));
       }
     }
     const degree = degreeMatch(text);
@@ -369,6 +476,24 @@ export function lintQuestion(id, q, opts = {}) {
               ...at, doc: 'https://docs.typesafe.ai/primitives/score',
             }));
         }
+        const numericOnly = levels.length >= 2 && levels.every((l) => RE_NUMERIC_LEVEL.test(l));
+        if (numericOnly) {
+          out.push(finding('score/numeric-only-levels', 'warn',
+            `Score "${id}" levels are numbers only (${JSON.stringify(levels.slice(0, 5))}). Each level is evaluated on its own and the model never sees its number or its neighbours, so it has nothing to match against and splits probability across them.`, {
+              ...at,
+              fix: 'Describe the concrete situation each level stands for, e.g. ["can wait weeks", "needs attention today"].',
+              doc: 'https://docs.typesafe.ai/primitives/score',
+            }));
+        }
+        const crossed = crossedDimensions(Array.isArray(q.criteria) ? q.criteria : []);
+        if (crossed) {
+          out.push(finding('score/crossed-dimensions', 'warn',
+            `Score "${id}" re-rates "${crossed.subject}" plus something else at ${crossed.levels} of ${crossed.of} levels. Two properties that can vary independently are crossed into one scale, so a middle answer cannot say which one moved.`, {
+              ...at,
+              fix: 'Split into one Score per property and combine them in code; they run in parallel in the same request.',
+              doc: 'https://docs.typesafe.ai/patterns/composite-scoring',
+            }));
+        }
         const ln = levels.map((l) => l.trim().toLowerCase());
         const dupL = levels.filter((l, i) => ln.indexOf(ln[i]) !== i);
         if (dupL.length) {
@@ -395,6 +520,14 @@ export function lintQuestion(id, q, opts = {}) {
   }
 
   // ---- jev-1.13 documented failure modes (any primitive) ----------------
+  // These run over the INSTRUCTIONS only, not criteria text, deliberately.
+  // Measured 2026-09-24: running them over all 131 Score levels in both corpora
+  // found 0 real defects and 1 false positive (a well-formed ladder). Levels
+  // legitimately carry counts and thresholds - "ESI 3: two or more resources",
+  // "crisis: 180 mmHg or above" - because bucketing a quantity into named levels
+  // IS the documented fix for asking jev to count. Scanning them would warn on
+  // the corrected form of the very thing these rules exist to catch. The one
+  // real criteria-level defect, crossed dimensions, has its own structural rule.
   for (const [re, rule, msg, fix] of [
     [RE_COUNTING, 'jev/counting', 'asks jev to count', 'Count in code: ask one question per item and sum the answers yourself.'],
     [RE_ARITHMETIC, 'jev/arithmetic', 'asks jev to do arithmetic', 'Keep the arithmetic in code; give jev the judgment only.'],
@@ -403,13 +536,19 @@ export function lintQuestion(id, q, opts = {}) {
     [RE_DOUBLE_NEG, 'jev/double-negative', 'contains a double negative or indirection', 'Rewrite as a direct positive condition.'],
   ]) {
     if (rule === 'jev/bundled-judgments' && RE_BUNDLED_EXEMPT.test(text)) continue;
+    // Bucketing a quantity into named Score levels is the documented fix for
+    // asking jev to count, so the corrected form must not get the same warning.
+    const bucketed = (rule === 'jev/counting' || rule === 'jev/arithmetic')
+      && q.type === 'score' && Array.isArray(q.criteria) && q.criteria.length >= 2;
     if (re.test(text)) {
       // For phrase-triggered rules the matched words are the useful evidence;
       // for structural patterns they read as nonsense, so show the instruction.
       const quote = ['jev/bundled-judgments', 'jev/double-negative'].includes(rule)
         ? `"${text.trim().slice(0, 80)}${text.trim().length > 80 ? '…' : ''}"`
         : `"${firstMatch(re, text)}"`;
-      out.push(finding(rule, 'warn', `Question "${id}" ${msg}: ${quote}. jev-1.13 is documented to be unreliable here.`, {
+      out.push(finding(rule, bucketed ? 'info' : 'warn', bucketed
+        ? `Question "${id}" ${msg}: ${quote}, but its Score levels bucket the answer, which is the documented mitigation. Check the levels are not themselves exact counts.`
+        : `Question "${id}" ${msg}: ${quote}. jev-1.13 is documented to be unreliable here.`, {
         ...at, fix, doc: 'https://docs.typesafe.ai/model-jaggedness/jev-1.13',
       }));
     }
@@ -471,12 +610,22 @@ export function resolvePath(root, path) {
  * Only runs when state is a JSON object/array — a plain-string state has no
  * named fields, so nothing here applies.
  */
-export function lintState(state, questions) {
+export function lintState(state, questions, opts = {}) {
   const out = [];
   if (state == null) return out;
 
   const isStructured = typeof state === 'object';
   const allText = Object.values(questions).map((q) => textOf(q?.instructions) + ' ' + textOf(q?.criteria)).join(' \n ');
+
+  // -- deny-listed fields: silent unless the user configures `forbidden` -----
+  // Zero false positives by construction, since the list is the user's own.
+  for (const path of forbiddenPaths(state, opts.forbidden)) {
+    out.push(finding('state/forbidden-path', 'error',
+      `State contains "${path}", which is on your forbidden list. State is sent to the TypeSafe API.`, {
+        fix: 'Drop or redact the field in code before building the request.',
+        doc: 'https://docs.typesafe.ai/concepts/state',
+      }));
+  }
 
   if (!isStructured) {
     // Docs: "Use an object for most requests so each part of the state has a
@@ -540,7 +689,10 @@ export function lintState(state, questions) {
   // available proxy for that.
   if (!Array.isArray(state)) {
     const keys = Object.keys(state);
-    const unref = keys.filter((k) => !new RegExp(`\\b${escapeRe(k)}\\b`, 'i').test(allText));
+    // The consistency cookbook adds a throwaway `uid` to every request as a cache
+    // buster. It is meant to be unreferenced; telling users to delete it is wrong.
+    const IMPLICIT = new Set(['uid', 'nonce', 'sample_uid']);
+    const unref = keys.filter((k) => !IMPLICIT.has(k.toLowerCase()) && !new RegExp(`\\b${escapeRe(k)}\\b`, 'i').test(allText));
     if (unref.length && keys.length > 1) {
       out.push(finding('state/unreferenced-fields', 'info',
         `State fields never mentioned by any question: ${JSON.stringify(unref)}. Unrelated detail in state measurably costs accuracy.`, {
@@ -594,7 +746,7 @@ export function lintRequest(req, opts = {}) {
     out.push(finding('question/empty-key', 'error', 'A question key is the empty string; the API rejects it.'));
   }
   for (const [id, q] of entries) out.push(...lintQuestion(id, q, opts));
-  out.push(...lintState(req.state, req.questions));
+  out.push(...lintState(req.state, req.questions, opts));
 
   // ---- context budget ---------------------------------------------------
   const stateTok = estimateTokens(req.state);

@@ -3,3 +3,4 @@ node_modules/
 *.log
 .ts-probe/
 skills/wellposed/eval/semantic-raw.json
+.regen-rules.py
