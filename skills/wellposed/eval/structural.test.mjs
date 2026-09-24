@@ -568,3 +568,9 @@ test('a Choice whose option descriptions are objects is linted, not crashed on',
   const hatch = { ...q, criteria: { ...q.criteria, other: { what: 'None of the above' } } };
   assert.equal(lintQuestion('intent', hatch).some((f) => f.rule === 'choice/no-escape-hatch'), false);
 });
+
+test('"how likely" on a Noul is the Noul working as designed, not a degree question', () => {
+  const rules = (instructions) => lintQuestion('q', { type: 'noul', instructions }).map((f) => f.rule);
+  assert.equal(rules('How likely is it that the customer in `message` will cancel?').includes('noul/degree-question'), false);
+  assert.equal(rules('How urgent is `message`?').includes('noul/degree-question'), true);
+});

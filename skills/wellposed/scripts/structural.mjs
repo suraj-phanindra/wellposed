@@ -131,7 +131,9 @@ const RE_DOUBLE_NEG = new RegExp(
 // also nouns, and "how much" is routinely embedded under a reporting verb
 // ("Does the invoice state how much tax was charged?") where the question as a
 // whole is a perfectly good yes/no.
-const RE_DEGREE_CORE = /\b(how (urgent|severe|likely|well|strong|good|bad|relevant|confident|important|risky|complex|serious|difficult)|on a scale(?: of| from)?|to what extent|what (degree|level|extent) of)\b/i;
+// Not "how likely": jev reads "How likely is X?" as the yes/no question "X?" —
+// measured on jev-1.13.0, twelve paired phrasings kept their order, max |ΔP| 0.11.
+const RE_DEGREE_CORE = /\b(how (urgent|severe|well|strong|good|bad|relevant|confident|important|risky|complex|serious|difficult)|on a scale(?: of| from)?|to what extent|what (degree|level|extent) of)\b/i;
 const RE_DEGREE_QUANT = /\bhow (much|many years)\b/i;
 const RE_DEGREE_IMPERATIVE = /(?:^|[.;]\s*|please\s+)(rate|score|grade)\s+(the|this|how|each)\b/i;
 const MATRIX_VERB = /\b(mention|state|say|said|ask|tell|told|report|include|indicate|specify|dispute|claim|note|record|show|list|describ)\w*\b/i;
