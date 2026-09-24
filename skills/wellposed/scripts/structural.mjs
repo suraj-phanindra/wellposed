@@ -75,6 +75,12 @@ export const normalizeOption = (s) => String(s)
   .toLowerCase();
 
 const ESCAPE_HATCH = /^(other|others|none|none of the (above|these)|n ?\/? ?a|not applicable|does not apply|unknown|not stated|not specified|not provided|not mentioned|not given|unspecified|no match|no other|neither|unclear|cannot tell|can ?not tell|can't tell|undetermined|uncertain|indeterminate|ambiguous|something else)$/;
+// An option phrased as an absence or a complement ("no_failure", "not_urgent",
+// "none_apparent", "nothing_needed") covers everything outside the others, and a
+// few one-word catch-alls are house style. Jev code from public repos used all
+// of these; the list above missed them, and blind reviewers marked those Choices
+// as already covered. The old pattern also required "none of THE these".
+const ESCAPE_HATCH_COMPLEMENT = /^(?:(?:no|not|none|nothing|insufficient)\b.*|.*\bnothing\b.*|missing|abstain|skip)$/;
 const ESCAPE_HATCH_DESC = /\b(none of (the )?(above|these|listed|options)|fits none|no(ne)? of the (other|listed)|does not fit|doesn'?t fit|not covered|anything else|any other)\b/i;
 
 // --- jev-1.13 documented weak spots -----------------------------------------
@@ -444,7 +450,7 @@ export function lintQuestion(id, q, opts = {}) {
       // The headline rule. Measured: 0 of 11 generated Choices had one, and a
       // Choice without one answered a not-covered input at confidence 1.00.
       const descs = Array.isArray(q.criteria) ? [] : Object.values(q.criteria).map((d) => textOf(d));
-      const hasHatch = opts.some((o) => ESCAPE_HATCH.test(normalizeOption(o)))
+      const hasHatch = opts.some((o) => ESCAPE_HATCH.test(normalizeOption(o)) || ESCAPE_HATCH_COMPLEMENT.test(normalizeOption(o)))
         || descs.some((d) => ESCAPE_HATCH_DESC.test(d));
       if (!hasHatch && opts.length >= 2) {
         out.push(finding('choice/no-escape-hatch', 'warn',

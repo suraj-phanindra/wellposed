@@ -574,3 +574,14 @@ test('"how likely" on a Noul is the Noul working as designed, not a degree quest
   assert.equal(rules('How likely is it that the customer in `message` will cancel?').includes('noul/degree-question'), false);
   assert.equal(rules('How urgent is `message`?').includes('noul/degree-question'), true);
 });
+
+test('options phrased as an absence or complement count as the escape hatch', () => {
+  const hatch = (...opts) => !lintQuestion('q', { type: 'choice', instructions: 'Which applies to `ticket`?',
+    criteria: Object.fromEntries(opts.map((o) => [o, null])) }).some((f) => f.rule === 'choice/no-escape-hatch');
+  for (const h of ['none_of_these', 'none_apparent', 'no_failure', 'not_urgent', 'nothing_needed', 'says_nothing',
+                   'missing', 'insufficient_evidence', 'abstain', 'skip']) {
+    assert.equal(hatch('billing', 'technical', h), true, h);
+  }
+  assert.equal(hatch('billing', 'technical', 'sales'), false, 'a closed list with no catch-all is still flagged');
+  assert.equal(hatch('notification', 'nonprofit', 'nothingness_studies'), false, 'words that merely start with no/not/none are not negations');
+});
