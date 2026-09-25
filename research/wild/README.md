@@ -66,6 +66,40 @@ Semantic layer (jev-on-jev), one question from each of 150 repos:
 | `degree-as-noul` | 19/81 Nouls | **4/14, 29% [12–55%]**, fixed by rewording (7328a4c). On a fresh held-out set it now scores 8/11, 73% [43–90%] |
 | `bundled-judgments` | 5/150 | 1/3. Too few to judge |
 
+## Do these defects cause wrong answers?
+
+Two experiments, each pre-registered in a committed script before any input existed: `outcome_hatch.mjs`
+(81e99d9) and `outcome_overlap.mjs` (816755e). A blind generator wrote inputs for real questions. An
+independent model checked each one without being told its intent, and only inputs it agreed with were
+kept. jev-1.13.0 answered one question per request.
+
+**Missing escape hatch.** 31 real Choices that both reviewers said need one.
+
+| | Result |
+|---|---|
+| Inputs that fit none of the options, as written | wrong every time; **36% [25–49%] at confidence ≥ 0.9** (22/61), 41% at ≥ 0.8, mean 0.66 |
+| Questions that gave at least one confidently wrong answer | 19 of 31 |
+| Same inputs with `"other"` added | **90% [80–95%] answered "other"** (55/61) |
+| Inputs that fit one option, with and without `"other"` | 62/62 correct both ways; the hatch took nothing |
+
+A confidence gate at 0.9 catches about two-thirds of these failures and misses a third. The earlier
+claim that gating "cannot catch" them came from a single example at confidence 1.00. That claim was
+too strong, and the warning now states the measured rate.
+
+**Overlapping options.** 14 real Choices both reviewers said overlap. 25 inputs had two options both
+true, and 32 inputs had one.
+
+| | Two true | One true |
+|---|---|---|
+| Answer changed when the option order was reversed | **0/25** [0–13%] | 0/32 |
+| Picked the first-listed of the two true options | 24/50, chance | — |
+| Confidence ≥ 0.9 | 10/25 | 31/32 |
+| Mean confidence | 0.82 | 0.98 |
+
+The pick is not arbitrary. jev returns one of the true options consistently. The cost is lower
+confidence, plus a second label that the code never sees. The overlap message used to say "unstable",
+and now says this instead.
+
 ## Method
 
 1. **Discovery.** 1,247 repos from the awesome-jev lists and code search. 32 were excluded:
