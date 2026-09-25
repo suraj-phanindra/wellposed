@@ -11,8 +11,9 @@ structure cannot decide, with labelled corpora that score both layers.
 ```
   question "route_team"
     warn   Choice "route_team" has no "other"/"none of the above" option. If an input fits none of
-           [billing, technical, account], jev must still pick one — measured at confidence 1.00 on a
-           wrong answer, so confidence gating will not catch it.
+           [billing, technical, account], jev must still pick one. On 31 real Choices given such
+           inputs, 36% of the wrong answers came at confidence >= 0.9, past a confidence gate; adding
+           "other" caught 90% and changed nothing on inputs that did fit.
            fix: Add e.g. {"other": "A case that fits none of the above"}
 
   question "agent_name"
@@ -71,6 +72,12 @@ This matters because the standard advice for handling AI uncertainty is *"check 
 and send the low-confidence ones to a human."* That advice **cannot catch this bug.** The confidence is
 perfect. Your monitoring sees a healthy, decisive answer. The wrong label flows into your database.
 
+It is not a one-off. We took 31 Choice questions from real jev code on GitHub that had no escape
+hatch, and gave each inputs that none of its options fit. jev answered wrong every time, and **36%
+of those wrong answers came back at confidence 0.9 or higher**, past any confidence gate. Adding an
+`"other"` option sent 90% of them there, and changed none of 62 answers on inputs that did fit.
+([method and numbers](research/wild/README.md))
+
 That is the whole reason wellposed exists: **some bad questions produce answers that look perfect.**
 You can't catch those by inspecting the answer. You have to catch them by inspecting the question,
 before you send it.
@@ -81,7 +88,9 @@ is wrong. Nothing downstream can tell.
 
 The contrast that shapes the whole design: when we gave a Choice two *overlapping* options (`angry` and
 `furious`), confidence **collapsed to 0.19**. That failure is loud — ordinary confidence checks catch
-it fine. So wellposed doesn't spend effort there. It focuses on the failures that stay silent.
+most of it. On 25 real inputs where two options were both true, 15 answers fell below 0.9, and
+reversing the option order never changed jev's pick. So wellposed spends its structural effort on
+the failures that stay silent, and leaves overlap to the semantic layer.
 
 ## What wellposed does about it
 

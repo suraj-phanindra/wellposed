@@ -15,9 +15,10 @@
  * Why structural checks exist at all: in a 40-question sample generated from
  * realistic intents, 42.5% were ill-posed but 0% had syntax errors. The
  * single largest defect class (missing none-of-the-above on a Choice, 47% of
- * all defects) is a *structural* property, and it fails at confidence 1.00 —
- * so runtime confidence gating cannot catch it. That is the case for linting
- * before the call rather than thresholding after it.
+ * all defects) is a *structural* property, and it fails confidently: on real
+ * Choices, 36% of its wrong answers came at confidence >= 0.9, where runtime
+ * confidence gating does not look. That is the case for linting before the
+ * call rather than thresholding after it.
  */
 
 export const PRIMITIVES = ['noul', 'choice', 'score'];
@@ -303,7 +304,7 @@ export const RULES = {
   'state/forbidden-path': { severity: 'error', source: 'your config: deny-listed field names or paths' },
   'state/wrong-type': { severity: 'error', source: 'verified: live API 422' },
   'choice/degenerate': { severity: 'warn', source: 'answer is predetermined' },
-  'choice/no-escape-hatch': { severity: 'warn', source: 'measured: wrong answer at confidence 1.00' },
+  'choice/no-escape-hatch': { severity: 'warn', source: 'measured on 31 real Choices: 36% confidently wrong; "other" catches 90%' },
   'context/near-total': { severity: 'warn', source: 'docs: 64k state+questions' },
   'jev/arithmetic': { severity: 'warn', source: 'jaggedness: keep math in code' },
   'jev/bundled-judgments': { severity: 'warn', source: 'jaggedness: one judgment per question' },
@@ -501,13 +502,16 @@ export function lintQuestion(id, q, opts = {}) {
       }
 
       // The headline rule. Measured: 0 of 11 generated Choices had one, and a
-      // Choice without one answered a not-covered input at confidence 1.00.
+      // Choice without one answered a not-covered input at confidence 1.00. On 31
+      // real Choices from public code (research/wild), inputs none of the options
+      // fit were answered wrong every time, 36% at confidence >= 0.9; with "other"
+      // added, 90% went to it and none of 62 fitting inputs changed answer.
       const descs = Array.isArray(q.criteria) ? [] : Object.values(q.criteria).map((d) => textOf(d));
       const hasHatch = opts.some((o) => ESCAPE_HATCH.test(normalizeOption(o)) || ESCAPE_HATCH_COMPLEMENT.test(normalizeOption(o)))
         || descs.some((d) => ESCAPE_HATCH_DESC.test(d));
       if (!hasHatch && opts.length >= 2) {
         out.push(finding('choice/no-escape-hatch', 'warn',
-          `Choice "${id}" has no "other"/"none of the above" option. If an input fits none of [${opts.slice(0, 6).join(', ')}${opts.length > 6 ? ', …' : ''}], jev must still pick one — measured at confidence 1.00 on a wrong answer, so confidence gating will not catch it.`, {
+          `Choice "${id}" has no "other"/"none of the above" option. If an input fits none of [${opts.slice(0, 6).join(', ')}${opts.length > 6 ? ', …' : ''}], jev must still pick one. On 31 real Choices given such inputs, 36% of the wrong answers came at confidence >= 0.9, past a confidence gate; adding "other" caught 90% and changed nothing on inputs that did fit.`, {
             ...at,
             fix: 'Add e.g. {"other": "A case that fits none of the above"} — or, if the options are genuinely exhaustive, suppress this rule.',
             doc: 'https://docs.typesafe.ai/primitives/choice',

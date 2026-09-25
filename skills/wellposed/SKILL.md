@@ -26,10 +26,12 @@ Measured on 2026-09-17 against `jev-1.13`, over 40 requests generated from reali
 | semantically ill-posed | **16 / 40 (40%)** |
 | Choice questions carrying a none-of-the-above option | **0 / 11** |
 | a Choice with no escape hatch, given an input none of its options covered | **wrong answer at confidence 1.00** |
+| 31 real Choices from public jev code, given inputs none of their options covered | **wrong every time; 36% at confidence ≥ 0.9** |
+| the same Choices with an `"other"` option added | **90% answered "other"; 0 of 62 fitting inputs changed answer** |
 
-That last row is why linting happens *before* the call. The standard mitigation — gate on confidence,
-send the uncertain ones to a human — cannot see this failure, because the model is maximally confident
-in the wrong answer.
+Those rows are why linting happens *before* the call. The standard mitigation — gate on confidence,
+send the uncertain ones to a human — misses a third of this failure, because the model is often
+confident in the wrong answer. The escape hatch fixes it at no measured cost.
 
 ## Build the request
 
