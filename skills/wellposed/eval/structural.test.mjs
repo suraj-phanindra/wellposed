@@ -5,6 +5,9 @@ import {
   estimateTokens, textOf, CTX_TOTAL_TOKENS,
 } from '../scripts/structural.mjs';
 
+// CLI tests spawn the linter; keep its daily update check off the network.
+process.env.WELLPOSED_NO_UPDATE_CHECK = '1';
+
 const rules = (fs) => fs.map((f) => f.rule);
 const sev = (fs, rule) => fs.find((f) => f.rule === rule)?.severity;
 
@@ -681,5 +684,34 @@ test('config "semantic": "auto" runs semantic only when a key is set, and nothin
     assert.equal(run(bad).status, 2, 'only "auto" is accepted');
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('lint says when a newer version exists, from a cached answer, and never otherwise', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, mkdirSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'wellposed.mjs');
+  const ex = join(dirname(fileURLToPath(import.meta.url)), '..', 'examples', 'support-ticket.json');
+  const cache = mkdtempSync(join(tmpdir(), 'wellposed-cache-'));
+  try {
+    mkdirSync(join(cache, 'wellposed'));
+    const run = (latest, extra = {}) => {
+      writeFileSync(join(cache, 'wellposed', 'update-check.json'), JSON.stringify({ checkedAt: Date.now(), latest }));
+      const env = { ...process.env, XDG_CACHE_HOME: cache, ...extra };
+      delete env.WELLPOSED_NO_UPDATE_CHECK; delete env.CI;
+      Object.assign(env, extra);
+      return spawnSync(process.execPath, [cli, 'lint', ex, '--json'], { encoding: 'utf8', env });
+    };
+    const stale = run('99.0.0');
+    assert.match(stale.stderr, /wellposed 99\.0\.0 is available \(this is \d+\.\d+\.\d+\)\. Update: /);
+    assert.doesNotThrow(() => JSON.parse(stale.stdout), 'the notice goes to stderr, never into --json');
+    assert.doesNotMatch(run('0.0.1').stderr, /is available/, 'an older registry version is not news');
+    assert.doesNotMatch(run('99.0.0', { WELLPOSED_NO_UPDATE_CHECK: '1' }).stderr, /is available/, 'opt-out');
+    assert.doesNotMatch(run('99.0.0', { CI: 'true' }).stderr, /is available/, 'CI never checks');
+  } finally {
+    rmSync(cache, { recursive: true, force: true });
   }
 });

@@ -111,7 +111,8 @@ to classify these tickets," the agent already knows:
 
 ### 2. A linter that reads your request and finds problems — free, instantly, offline
 
-No API key, no network, no waiting. It reads the JSON and checks 45 rules.
+No API key, no waiting, and no network beyond a once-a-day version check. It reads the JSON and
+checks 45 rules.
 
 **Things that are definitely broken** (these fail the check):
 
@@ -314,6 +315,21 @@ npm i -g wellposed                 # or put it on PATH
 ```
 
 Node ≥ 18, zero dependencies. No API key needed for the structural checks.
+
+### Updating
+
+Only `npx wellposed` picks up new versions on its own. Everything else stays where you installed it:
+
+| Installed with | Update with |
+|---|---|
+| Claude Code plugin | `claude plugin update wellposed@wellposed`, or turn on auto-update in `/plugin` → Marketplaces (it is off by default for third-party marketplaces) |
+| `npx skills add` | `npx skills update wellposed` |
+| `npm i -g wellposed` | `npm i -g wellposed@latest` |
+
+`wellposed --version` prints what you have. At most once a day, `wellposed lint` asks the npm
+registry for the latest version and prints one line on stderr if yours is behind, with the command
+for your install. It is cached, gives up silently after one second, never runs in CI, and is off
+with `WELLPOSED_NO_UPDATE_CHECK=1`. It is the only network request the structural pass makes.
 
 ## Use
 

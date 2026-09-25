@@ -121,6 +121,12 @@ WP=$(find ~/.claude/plugins ~/.agents/skills ~/.codex/skills .agents/skills \
 node "$WP" lint request.json
 ```
 
+Once per session, check this skill is current: compare `metadata.version` at the top of this file
+with `npm view wellposed version`. If npm is newer, tell the user and give the update command:
+`claude plugin update wellposed@wellposed` for the Claude Code plugin, `npx skills update wellposed`
+for other agents. `npx wellposed` already runs the newest CLI, but this file's guidance only updates
+when the skill does.
+
 Never rely on `${CLAUDE_PLUGIN_ROOT}` or `${CLAUDE_SKILL_DIR}` — they expand to nothing outside
 Claude Code, which is precisely the case this skill has to survive.
 

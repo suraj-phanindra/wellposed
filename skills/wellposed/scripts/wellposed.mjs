@@ -7,13 +7,17 @@
  *   wellposed rules                list every rule
  *   wellposed eval                 score the linter against the labelled corpus
  */
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { lintRequest, lintQuestion, RULES } from './structural.mjs';
 import { semanticLint, settleEscapeHatch, CHECKS, LOW, HIGH, ALIASES } from './semantic.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+// SKILL.md is the one file every install path ships (the skills CLI copies only
+// skills/wellposed/, so package.json is not there to read).
+const VERSION = (() => { try { return readFileSync(join(ROOT, 'SKILL.md'), 'utf8').match(/^\s+version:\s*(\S+)/m)[1]; } catch { return 'unknown'; } })();
 const ESC = String.fromCharCode(27);
 const tty = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = (code, s) => (tty ? `${ESC}[${code}m${s}${ESC}[0m` : s);
@@ -34,7 +38,7 @@ const opt = (n, d) => {
   const i = argv.indexOf(`--${n}`);
   return i >= 0 ? argv[i + 1] : d;
 };
-const KNOWN_FLAGS = ['semantic', 'config', 'json', 'quiet', 'max-warnings', 'help'];
+const KNOWN_FLAGS = ['semantic', 'config', 'json', 'quiet', 'max-warnings', 'help', 'version'];
 const VALUE_FLAGS = ['config', 'max-warnings'];
 function requireFlagValues() {
   for (const n of VALUE_FLAGS) {
@@ -71,6 +75,7 @@ ${bold('wellposed')} - lint jev requests before you send them
       --max-warnings <n>          exit non-zero if warnings exceed n
 
   ${bold('wellposed rules')}                 list every rule, its severity and its source
+  ${bold('wellposed --version')}             print the version
   ${bold('wellposed eval')}                  score the linter against the labelled corpus
 
 Exit codes: 0 clean, 1 errors found (or warnings over --max-warnings), 2 bad usage.
@@ -139,6 +144,7 @@ function print(findings, { quiet }) {
 
 
 async function main() {
+  if (flag('version') || cmd === 'version') { console.log(VERSION); return; }
   if (!cmd || flag('help') || cmd === 'help') usage(0);
 
   if (cmd === 'rules') {
@@ -168,6 +174,7 @@ async function main() {
   if (cmd !== 'lint') usage(2, `unknown command: ${cmd}`);
   rejectUnknownFlags();
   requireFlagValues();
+  const notice = updateNotice();
 
   const positional = argv.slice(1).filter((a, i, arr) => {
     if (a.startsWith('--')) return false;
@@ -265,8 +272,50 @@ async function main() {
     }
   }
 
+  const update = await notice;
+  if (update) console.error(yellow(`\n  ${update}\n`));
   if (total.error > 0) process.exit(1);
   if (maxW != null && total.warn > Number(maxW)) process.exit(1);
+}
+
+// At most once a day, ask npm whether a newer wellposed exists and say how to get it.
+// Plugin and skills-CLI installs never update on their own, and nothing else tells
+// their users. A cached answer costs nothing; a failed or slow lookup (1s cap) is
+// silent; CI and WELLPOSED_NO_UPDATE_CHECK=1 skip it. This is the only network call
+// the structural pass makes.
+const newerVersion = (a, b) => {
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+};
+function updateCommand(scriptPath) {
+  const p = scriptPath.replace(/\\/g, '/');
+  return p.includes('/.claude/plugins/') ? 'claude plugin update wellposed@wellposed'
+    : p.includes('/_npx/') ? 'npx wellposed@latest'
+    : p.includes('/node_modules/') ? 'npm install wellposed@latest'
+    : 'npx skills update wellposed';
+}
+async function updateNotice() {
+  if (process.env.CI || process.env.WELLPOSED_NO_UPDATE_CHECK || VERSION === 'unknown') return null;
+  const dir = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'wellposed');
+  const file = join(dir, 'update-check.json');
+  let latest = null;
+  try {
+    const cached = JSON.parse(readFileSync(file, 'utf8'));
+    if (Date.now() - cached.checkedAt < 86_400_000) latest = cached.latest;
+  } catch { /* no cache yet */ }
+  if (!latest) {
+    try {
+      const r = await fetch('https://registry.npmjs.org/wellposed/latest', { signal: AbortSignal.timeout(1000) });
+      latest = (await r.json()).version;
+      if (typeof latest !== 'string') return null;
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(file, JSON.stringify({ checkedAt: Date.now(), latest }));
+    } catch { return null; }
+  }
+  return newerVersion(latest, VERSION)
+    ? `wellposed ${latest} is available (this is ${VERSION}). Update: ${updateCommand(fileURLToPath(import.meta.url))}`
+    : null;
 }
 
 function summaryLine(counts, sem) {
