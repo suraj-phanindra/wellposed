@@ -1,6 +1,6 @@
 {
   "name": "wellposed",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Lint your jev requests before they come back confidently wrong.",
   "type": "module",
   "bin": {
