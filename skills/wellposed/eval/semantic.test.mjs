@@ -97,3 +97,12 @@ test('the served model is reported, so results can be tied to a version', async 
   const r = await semanticLint(req, { apiKey: 'test', fetchImpl });
   assert.deepEqual(r.models, ['jev-1.13.0']);
 });
+
+test('a thrown network error is retried, and reported cleanly if it persists', async () => {
+  const blip = (failures) => { let n = 0; const ok = stubFetch(() => 0.1);
+    return async (u, init) => { if (n++ < failures) { const e = new TypeError('fetch failed'); e.cause = { code: 'UND_ERR_CONNECT_TIMEOUT' }; throw e; } return ok(u, init); }; };
+  const r = await semanticLint(req, { apiKey: 'test', fetchImpl: blip(1) });
+  assert.equal(r.calls, 1, 'one billed call after one retried blip');
+  await assert.rejects(semanticLint(req, { apiKey: 'test', fetchImpl: blip(99), maxRetries: 1 }),
+    (e) => e.code === 'SEMANTIC_NETWORK' && /UND_ERR_CONNECT_TIMEOUT/.test(e.message));
+});

@@ -365,13 +365,25 @@ export async function semanticLint(req, opts = {}) {
     if (!request) return [];
     let res;
     for (let attempt = 0; ; attempt++) {
-      res = await doFetch(ENDPOINT, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        // Without this a stalled endpoint hangs the CLI with no output.
-        signal: AbortSignal.timeout(opts.timeoutMs ?? TIMEOUT_MS),
-      });
+      try {
+        res = await doFetch(ENDPOINT, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(request),
+          // Without this a stalled endpoint hangs the CLI with no output.
+          signal: AbortSignal.timeout(opts.timeoutMs ?? TIMEOUT_MS),
+        });
+      } catch (e) {
+        // A connect timeout or reset throws instead of returning a response, and
+        // used to end the whole run on one blip. Retry it like a 5xx.
+        if (attempt >= (opts.maxRetries ?? MAX_RETRIES)) {
+          const err = new Error(`semantic lint call failed for question "${id}": ${e.cause?.code ?? e.name} ${e.message}`);
+          err.code = 'SEMANTIC_NETWORK';
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, 400 * 2 ** attempt));
+        continue;
+      }
       calls++;
       if (res.ok) break;
       if (attempt >= (opts.maxRetries ?? MAX_RETRIES)) break;
