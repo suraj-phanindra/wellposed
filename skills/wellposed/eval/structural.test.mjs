@@ -609,3 +609,19 @@ test('double negatives: guidance and cross-clause pairs are not flagged, real on
     'Is there no reason not to approve `claim`?',
   ]) assert.equal(dn(real), true, real);
 });
+
+test('bundling is two yes/no questions joined, not a clarifying statement or a wh-question', () => {
+  const b = (instructions) => lintQuestion('q', { type: 'noul', instructions }).some((f) => f.rule === 'jev/bundled-judgments');
+  // Shapes from jev code in public repos that two blind reviewers both called one judgment.
+  for (const one of [
+    'Should the bot stay quiet? The request (stop covering for you) is still in force and has not been withdrawn.',
+    'Which related method most likely holds a defect connected to `method`, and is worth examining next?',
+    'You are running out of room and are about to have nowhere left to go.',
+    'Does `comment` restate the code? Commented-out code is not an explanatory comment and is judged elsewhere.',
+  ]) assert.equal(b(one), false, one);
+  for (const two of [
+    'Did the typing succeed: does the field contain the typed text, and is that text a sensible value?',
+    'Through the base, did weekly volume run below its average, and did volume then expand on the breakout?',
+    'Is this submission on the assigned prompt, and is it written at a 7th-grade reading level?',
+  ]) assert.equal(b(two), true, two);
+});

@@ -116,6 +116,22 @@ const RE_BUNDLED = /\b(\w+)\s+and\s+(?:also\s+)?(?:is|are|does|do|did|has|have|w
 // judgment; so does quoted text. Both tripped the bundling heuristic.
 const RE_BUNDLED_EXEMPT = /\b(consider|taking into account|based on|weigh(?:ing)?|using)\b[^.?!]{0,80},\s*and\b|["“][^"”]{0,160}["”]/i;
 
+// Bundling is two yes/no questions joined in one question sentence: "Is the rent
+// within budget and are pets allowed?". On jev code from public repos, scanning every
+// sentence was right 4 times in 29 against two blind reviewers: clarifying
+// statements fired ("the order is still in force and has not been withdrawn"), and
+// so did a wh-question's second predicate ("Which method…, and is worth examining
+// next?"), which is still one choice. Statement-form bundles ("Answer true if X and
+// Y") look identical to one-condition definitions; semantic/bundled-judgments owns them.
+const RE_YESNO_OPEN = /(?:^\s*|[,:;]\s*)(?:is|are|does|do|did|has|have|was|were|can|could|should|will|would)\s/i;
+function bundles(text) {
+  for (const sentence of text.match(/[^.?!\n]*\?/g) ?? []) {
+    const m = sentence.match(RE_BUNDLED);
+    if (m && RE_YESNO_OPEN.test(sentence.slice(0, m.index))) return true;
+  }
+  return false;
+}
+
 // §4 Indirection — double negatives cost accuracy. The prefix must actually
 // negate: matching /(un|in|non|dis)\w+/ keys on spelling, so "invoice",
 // "installed", "interested" and "insured" all counted as negations.
@@ -563,7 +579,7 @@ export function lintQuestion(id, q, opts = {}) {
     const bucketed = (rule === 'jev/counting' || rule === 'jev/arithmetic')
       && q.type === 'score' && Array.isArray(q.criteria) && q.criteria.length >= 2;
     const scanned = rule === 'jev/double-negative' ? text.replace(IMPERATIVE_PROHIBITION, ' ') : text;
-    if (re.test(scanned)) {
+    if (rule === 'jev/bundled-judgments' ? bundles(scanned) : re.test(scanned)) {
       // For phrase-triggered rules the matched words are the useful evidence;
       // for structural patterns they read as nonsense, so show the instruction.
       const quote = ['jev/bundled-judgments', 'jev/double-negative'].includes(rule)
