@@ -715,3 +715,11 @@ test('lint says when a newer version exists, from a cached answer, and never oth
     rmSync(cache, { recursive: true, force: true });
   }
 });
+
+test('arithmetic and date rules skip guidance that forbids calculating', () => {
+  const r = (instructions) => lintQuestion('q', { type: 'noul', instructions }).map((f) => f.rule);
+  // Shapes from jev code in public repos that two blind reviewers both called clean.
+  assert.ok(!r('Does the schedule conflict with a stated pace? Use the named buckets; do not calculate thresholds.').includes('jev/arithmetic'));
+  assert.ok(!r('Is the period already encoded in a metric filter? Do not calculate or compare dates.').includes('jev/arithmetic'));
+  assert.ok(r('Calculate the total of `order.charges` and say whether it exceeds 90 dollars.').includes('jev/arithmetic'), 'real arithmetic still fires');
+});

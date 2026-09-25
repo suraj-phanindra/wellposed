@@ -601,9 +601,13 @@ export function lintQuestion(id, q, opts = {}) {
     // asking jev to count, so the corrected form must not get the same warning.
     const bucketed = (rule === 'jev/counting' || rule === 'jev/arithmetic')
       && q.type === 'score' && Array.isArray(q.criteria) && q.criteria.length >= 2;
-    const scanned = rule === 'jev/double-negative' ? text.replace(IMPERATIVE_PROHIBITION, ' ')
-      : rule === 'jev/counting' ? questionText(text).replace(RE_QUANTITY_DECISION, ' ').replace(RE_COUNT_DISMISSED, ' ')
-      : text;
+    // "Do not calculate or compare dates" forbids the very thing these rules warn
+    // about; on jev code from public repos every jev/arithmetic hit was such a
+    // prohibition. Guidance is set aside before any of these rules scan.
+    const guidanceFree = rule === 'jev/bundled-judgments' ? text : text.replace(IMPERATIVE_PROHIBITION, ' ');
+    const scanned = rule === 'jev/counting'
+      ? questionText(guidanceFree).replace(RE_QUANTITY_DECISION, ' ').replace(RE_COUNT_DISMISSED, ' ')
+      : guidanceFree;
     if (rule === 'jev/bundled-judgments' ? bundles(scanned) : re.test(scanned)) {
       // For phrase-triggered rules the matched words are the useful evidence;
       // for structural patterns they read as nonsense, so show the instruction.
