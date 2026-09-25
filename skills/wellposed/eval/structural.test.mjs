@@ -591,3 +591,21 @@ test('Noul criteria under yes/no are an error, because jev silently drops them',
     .find((x) => x.rule === 'noul/unexpected-criteria-keys');
   assert.equal(f?.severity, 'error');
 });
+
+test('double negatives: guidance and cross-clause pairs are not flagged, real ones are', () => {
+  const dn = (instructions) => lintQuestion('q', { type: 'noul', instructions }).some((f) => f.rule === 'jev/double-negative');
+  // Shapes from jev code in public repos that two blind reviewers both called clean.
+  for (const clean of [
+    'Classify the failure in `output`. Do not infer a root cause without evidence.',
+    'Classify the price regime in `bars`. Do not invent unavailable data.',
+    'Is the task large? Large is not always hard; zero or unavailable counts are fine.',
+    'Which status applies? Not determined: the user listed options without choosing.',
+    'Is the request still open? A newer informational message does not erase an older unresolved request.',
+    'Does the query filter by date? A plain COUNT with no date predicate does not encode a period.',
+  ]) assert.equal(dn(clean), false, clean);
+  for (const real of [
+    'Is the tenant not unwilling to sign?',
+    'Is missing code for a described bug not by itself insufficient?',
+    'Is there no reason not to approve `claim`?',
+  ]) assert.equal(dn(real), true, real);
+});

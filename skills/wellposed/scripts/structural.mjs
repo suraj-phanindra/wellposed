@@ -127,11 +127,19 @@ const NEGATING = [
   '|non-?(?:compliant|refundable|negotiable|responsive|binding|standard|existent|disclosure)',
   '|dis(?:satisfied|approved|allowed|qualified|continued|puted|honest)',
 ].join('');
+// The negation must govern the negative word ("not unwilling", "not by itself
+// insufficient", "no reason not to"), and a match stops at ; and : as well as at
+// sentence ends. Linting jev code from public repos, the looser 40-character window
+// was 0 for 10 against two blind reviewers: it paired negations across clauses and
+// with unrelated words ("does not erase an older unresolved request").
 const RE_DOUBLE_NEG = new RegExp(
-  `\\bnot\\b[^.?!]{0,40}\\b(?:${NEGATING})\\b` +
-  '|\\bnever\\b[^.?!]{0,40}\\bnot\\b' +
-  '|\\bnot\\b[^.?!]{0,40}\\bwithout\\b' +
-  '|\\bno\\b[^.?!]{0,25}\\bnot\\b', 'i');
+  `\\bnot\\s+(?:[\\w'-]+\\s+){0,2}(?:${NEGATING})\\b` +
+  '|\\bnever\\b[^.?!;:]{0,40}\\bnot\\b' +
+  '|\\bnot\\b[^.?!;:]{0,40}\\bwithout\\b' +
+  '|\\bno\\s+[\\w-]+\\s+not\\b', 'i');
+// Guidance such as "Do not invent unavailable data" tells the model what to avoid;
+// its negation is not part of the condition being judged, so it is set aside first.
+const IMPERATIVE_PROHIBITION = /(?:^|[.!?;:]\s+|\n\s*)(?:please\s+)?(?:do not|don't|never)\b[^.!?;:\n]*/gi;
 
 // Docs: a Noul is yes/no; degree belongs in a Score. But "rate" and "score" are
 // also nouns, and "how much" is routinely embedded under a reporting verb
@@ -554,7 +562,8 @@ export function lintQuestion(id, q, opts = {}) {
     // asking jev to count, so the corrected form must not get the same warning.
     const bucketed = (rule === 'jev/counting' || rule === 'jev/arithmetic')
       && q.type === 'score' && Array.isArray(q.criteria) && q.criteria.length >= 2;
-    if (re.test(text)) {
+    const scanned = rule === 'jev/double-negative' ? text.replace(IMPERATIVE_PROHIBITION, ' ') : text;
+    if (re.test(scanned)) {
       // For phrase-triggered rules the matched words are the useful evidence;
       // for structural patterns they read as nonsense, so show the instruction.
       const quote = ['jev/bundled-judgments', 'jev/double-negative'].includes(rule)
