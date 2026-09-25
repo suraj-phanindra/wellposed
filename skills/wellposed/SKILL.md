@@ -9,7 +9,7 @@ description: >
   TypeSafe.
 metadata:
   short-description: Write and lint jev requests that mean what you think they mean.
-  version: 0.6.0
+  version: 0.6.1
   homepage: https://github.com/suraj-phanindra/wellposed
 ---
 
