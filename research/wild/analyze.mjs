@@ -11,8 +11,10 @@ const callsTypesafe = JSON.parse(readFileSync('calls_typesafe.json', 'utf8'));
 const repoMeta = Object.fromEntries(JSON.parse(readFileSync('repos.json', 'utf8')).map((r) => [r.repo.toLowerCase(), r]));
 
 const isDyn = (v) => v && typeof v === 'object' && !Array.isArray(v) && ('__dynamic__' in v);
-const hasDynInside = (v) => v && typeof v === 'object' && (isDyn(v) || '__spread__' in v || '__dynkey__' in v
-  || Object.values(v).some((x) => x && typeof x === 'object' && isDyn(x)));
+// Deep: structured instructions like {"goal": <runtime>, "rules": <runtime>} otherwise
+// passed as literal, and the linter saw only their key names.
+const hasDynInside = (v) => v != null && typeof v === 'object' && (isDyn(v) || '__spread__' in v || '__dynkey__' in v
+  || Object.values(v).some((x) => hasDynInside(x)));
 const clean = (v) => isDyn(v) ? null : v && typeof v === 'object' && !Array.isArray(v) && '__template__' in v ? v.__template__
   : Array.isArray(v) ? v.map(clean) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, clean(x)])) : v;
 
@@ -22,7 +24,7 @@ const perFile = {};
 for (const q of raw) perFile[q.repo + '|' + q.file] = (perFile[q.repo + '|' + q.file] ?? 0) + 1;
 
 const rows = raw.map((q) => {
-  const instrLit = q.instructions != null && !isDyn(q.instructions);
+  const instrLit = q.instructions != null && !hasDynInside(q.instructions);
   const critLit = q.criteria != null && !hasDynInside(q.criteria);
   const generated = q.lang === 'json' && (GENERATED_DIR.test(q.file) || perFile[q.repo + '|' + q.file] > 25);
   const meta = repoMeta[q.repo.toLowerCase()] ?? {};

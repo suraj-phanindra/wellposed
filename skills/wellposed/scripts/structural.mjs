@@ -338,6 +338,16 @@ export function textOf(v, depth = 0, seen = new WeakSet()) {
   return String(v);
 }
 
+// Chinese and Japanese are written without spaces, so splitting on whitespace made a
+// full question such as "车辆是否仍然可以维修，而不是必须报废？" one "word". Found in jev
+// code from public repos, where every such id-only flag was a clear question. Count
+// roughly one word per two CJK characters instead.
+const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
+function wordCount(text) {
+  const cjk = (String(text).match(CJK) ?? []).length;
+  return String(text).replace(CJK, ' ').trim().split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length + Math.ceil(cjk / 2);
+}
+
 const isPlainObject = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
 
 function finding(rule, severity, message, { questionId, fix, doc } = {}) {
@@ -394,7 +404,7 @@ export function lintQuestion(id, q, opts = {}) {
   // [docs] The question key "is not sent to the underlying model and is not used
   // in inference." A two-word instruction with no criteria means the meaning
   // lives in the key — `refund_requested: "refund?"` — and jev sees only "refund?".
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const words = wordCount(text);
   const noCriteria = q.criteria == null
     || (typeof q.criteria === 'object' && Object.keys(q.criteria).length === 0);
   if (hasInstr && words < 3 && noCriteria) {
@@ -557,7 +567,7 @@ export function lintQuestion(id, q, opts = {}) {
         }
         // Docs: "Score levels must describe concrete situations and stand on
         // their own." Bare adjectives ("weak", "okay") do not.
-        const bare = levels.filter((l) => l.trim().split(/\s+/).length < 2);
+        const bare = levels.filter((l) => wordCount(l) < 2);
         if (bare.length >= 2 && bare.length / levels.length > 0.6) {
           out.push(finding('score/bare-levels', 'info',
             `Score "${id}" levels are single words (${JSON.stringify(bare.slice(0, 4))}). Levels should describe concrete, self-standing situations.`, {

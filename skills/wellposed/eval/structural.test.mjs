@@ -641,3 +641,19 @@ test('counting fires on the question, not on descriptions, decisions or dismisse
     'If each section were shown alone, how many would still make complete sense?',
   ]) assert.equal(c(real), true, real);
 });
+
+test('id-only semantics counts CJK text by characters, not by spaces', () => {
+  const idOnly = (instructions) => lintQuestion('repairable', { type: 'noul', instructions })
+    .some((f) => f.rule === 'question/id-only-semantics');
+  assert.equal(idOnly('车辆是否仍然可以维修，而不是必须报废？'), false, 'a full Chinese question');
+  assert.equal(idOnly('画像に人物が写っていますか？'), false, 'a full Japanese question');
+  assert.equal(idOnly('选一个'), true, '"pick one" still says nothing');
+  assert.equal(idOnly('refund?'), true);
+});
+
+test('bare Score levels are judged by words, CJK included', () => {
+  const bare = (criteria) => lintQuestion('s', { type: 'score', instructions: '`ticket` 有多紧急？', criteria })
+    .some((f) => f.rule === 'score/bare-levels');
+  assert.equal(bare(['可以下周再处理', '需要本周内处理', '必须今天立即处理']), false);
+  assert.equal(bare(['低', '中', '高']), true);
+});
