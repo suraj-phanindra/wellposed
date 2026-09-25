@@ -35,6 +35,8 @@ These are all fixed and committed, with no version bump.
 | 5a098b0 | `jev/double-negative` paired negations across clauses and read "Do not infer … without evidence" guidance as the condition | 12 wild hits became 2. All 10 dropped were consensus-clean |
 | 9298152 | `jev/bundled-judgments` fired on "and" in clarifying statements and in wh-questions | 33 hits became 4 (3 consensus-real). 24 consensus-clean hits dropped, 1 real one lost |
 | 5127273 | `jev/counting` fired on "how many" in descriptions, in decisions ("how many … should") and in dismissals ("no matter how many") | 25 hits became 20. All 5 dropped were consensus-clean, and no real one was lost |
+| 7328a4c | Semantic `degree-as-noul` flagged decisions, entity matches and category checks | Pre-registered held-out of 75 fresh wild Nouls: recall 9/10 → 8/10, clean Nouls flagged 11/47 → 3/47, precision 9/20 → 8/11. Semantic corpus unchanged at 34/35 and 34/34 |
+| 1fe032d | A network timeout ended a semantic run instead of being retried | seen during these runs |
 | e9608b1 | Chinese and Japanese text counted as one word, so full questions were called meaningless | id-only-semantics went from 65 hits in 42 repos to 16 in 14. Every consensus-clean id-only flag had been CJK |
 
 ## False positives: blind review
@@ -61,7 +63,7 @@ Semantic layer (jev-on-jev), one question from each of 150 repos:
 |---|---|---|
 | `options-not-exclusive` | 32/48 Choices | **20/22, 91% [72–97%]**. Overlapping options are common and real |
 | `escape-hatch-needed` | 30/36 | 16/21, 76% [55–89%]. On the fresh sample: 15/26, 58% [39–74%], **recall 15/15** |
-| `degree-as-noul` | 19/81 Nouls | **4/14, 29% [12–55%]**. No threshold separates hits from misses, so the wording is the problem |
+| `degree-as-noul` | 19/81 Nouls | **4/14, 29% [12–55%]**, fixed by rewording (7328a4c). On a fresh held-out set it now scores 8/11, 73% [43–90%] |
 | `bundled-judgments` | 5/150 | 1/3. Too few to judge |
 
 ## Method
@@ -96,5 +98,5 @@ those route through OpenRouter, where that id may be valid.
   show. The two earlier packets disagreed (19% and 59%). The fresh 43% sits between them.
 - The structural fixes were tuned on the reviewed items, and those items are now spent.
   The next labelled set has to come from new repos or from a later harvest.
-- Semantic `degree-as-noul` (4/14) is **not** fixed. It needs a rewording, a paid corpus run
-  and a fresh held-out set, because the old one is spent.
+- What counts as a degree question is contested. On the degree held-out the two reviewers
+  agreed on 57 of 72 decided pairs, and Sonnet called 25 items degree where Opus called 11.
