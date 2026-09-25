@@ -161,18 +161,25 @@ export const CHECKS = [
     applies: ['noul'],
     defectWhen: true,
     // Measured 0/5 recall in its first form, which asked whether the question
-    // says "how much". The real failure class is phrased as a yes/no over a
-    // GRADABLE property — "is this pain severe", "is this PR risky" — where the
-    // surface form is a condition but the underlying property is a matter of
-    // degree with no stated cutoff.
+    // says "how much". The second form listed degree adjectives and asked whether
+    // "reasonable people would put the cutoff in different places" — true of nearly
+    // every judgment, so on jev code from public repos it flagged decisions, entity
+    // matches and category checks: 10 of 67 Nouls two blind reviewers called clean.
+    // This form judges the PROPERTY and names the yes/no kinds. A first rewording
+    // that excluded "decisions" read "Decide whether this pain is severe" as one and
+    // lost all 5 corpus positives, hence "ignore the phrasing". On a pre-registered
+    // held-out set of 75 wild Nouls: recall 9/10 -> 8/10, clean flagged 11/47 -> 3/47.
     instructions:
-      'Does `question.instructions` turn on a property that is a matter of DEGREE — severe, risky, strong, ' +
-      'reliable, toxic, significant, good — where reasonable people would put the cutoff in different places, ' +
-      'AND neither the instructions nor `question.criteria` say where that line falls? Include questions ' +
-      'phrased as a yes/no about such a property, not only ones that literally ask "how much".',
+      'Ignore the phrasing ("decide whether", "is it", "does it") and look at the property being judged in ' +
+      '`question.instructions`. Does that property come in degrees — severity, risk, urgency, strength, ' +
+      'reliability, toxicity, quality, fit — so that the honest answer is a position on a scale (slightly, ' +
+      'moderately, very), and neither the instructions nor `question.criteria` say where yes begins? The ' +
+      'property is yes/no, not a degree, when it is: whether to take a specific action, whether two things ' +
+      'are the same, whether something belongs to a defined category or breaks a stated rule, or whether ' +
+      'something is present or happened.',
     criteria: {
-      true: 'The property varies by degree and no threshold is given, so a yes/no answer hides where the line was drawn.',
-      false: 'The condition is sharply defined, or the criteria state explicitly where the cutoff falls.',
+      true: 'The judged property comes in degrees, and no cutoff for yes is stated.',
+      false: 'The judged property is itself yes/no — an action to take, a match, a defined category or rule, a presence or an event — or the cutoff for yes is stated.',
     },
     message: (p) => `is a degree question asked as a Noul (P=${p.toFixed(2)}); P(yes) cannot express "how much"`,
     fix: 'Use a Score with ordered, concrete levels, or restate as a sharp yes/no condition.',
