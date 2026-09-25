@@ -657,3 +657,29 @@ test('bare Score levels are judged by words, CJK included', () => {
   assert.equal(bare(['可以下周再处理', '需要本周内处理', '必须今天立即处理']), false);
   assert.equal(bare(['低', '中', '高']), true);
 });
+
+test('config "semantic": "auto" runs semantic only when a key is set, and nothing else is accepted', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'wellposed.mjs');
+  const dir = mkdtempSync(join(tmpdir(), 'wellposed-'));
+  try {
+    const req = join(dir, 'r.json');
+    writeFileSync(req, JSON.stringify({ model: 'm', state: { msg: 'x' },
+      questions: { a: { type: 'noul', instructions: 'Does `msg` ask for a refund?' } } }));
+    const auto = join(dir, 'auto.json'); writeFileSync(auto, JSON.stringify({ semantic: 'auto' }));
+    const bad = join(dir, 'bad.json'); writeFileSync(bad, JSON.stringify({ semantic: true }));
+    const env = { ...process.env }; delete env.TYPESAFE_API_KEY;
+    const run = (cfg) => spawnSync(process.execPath, [cli, 'lint', req, '--config', cfg, '--json'], { encoding: 'utf8', env });
+    const r = run(auto);
+    assert.equal(r.status, 0);
+    assert.equal(JSON.parse(r.stdout).semantic.requested, false, 'no key: structural only, no network call');
+    assert.doesNotMatch(r.stderr, /skipped/, 'auto mode without a key is not a failure to report');
+    assert.equal(run(bad).status, 2, 'only "auto" is accepted');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

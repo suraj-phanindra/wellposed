@@ -11,7 +11,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { lintRequest, lintQuestion, RULES } from './structural.mjs';
-import { semanticLint, CHECKS, LOW, HIGH, ALIASES } from './semantic.mjs';
+import { semanticLint, settleEscapeHatch, CHECKS, LOW, HIGH, ALIASES } from './semantic.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ESC = String.fromCharCode(27);
@@ -210,6 +210,14 @@ async function main() {
     }
   }
 
+  // "auto" runs the semantic layer whenever TYPESAFE_API_KEY is set. Opt-in only:
+  // it sends questions and state to TypeSafe, which a CI job must not do by surprise.
+  if (config.semantic != null && config.semantic !== 'auto') {
+    console.error(red('config: "semantic" must be "auto" (run jev-on-jev checks whenever TYPESAFE_API_KEY is set)'));
+    process.exit(2);
+  }
+  config.runSemantic = flag('semantic') || (config.semantic === 'auto' && Boolean(process.env.TYPESAFE_API_KEY));
+
   if (config.forbidden != null && !(Array.isArray(config.forbidden)
       && config.forbidden.every((f) => typeof f === 'string' && f.trim()))) {
     console.error(red('config: "forbidden" must be an array of non-empty field names or dotted paths'));
@@ -271,10 +279,10 @@ function summaryLine(counts, sem) {
 
 /** Structural pass, plus the semantic pass when asked. Never throws on a semantic failure. */
 async function lintOne(req, config, label) {
-  const findings = [...lintRequest(req, { rules: config.rules, forbidden: config.forbidden }).findings];
-  const semantic = { requested: flag('semantic'), skipped: null, calls: 0, usage: null };
+  let findings = [...lintRequest(req, { rules: config.rules, forbidden: config.forbidden }).findings];
+  const semantic = { requested: config.runSemantic, skipped: null, calls: 0, usage: null };
 
-  if (flag('semantic')) {
+  if (config.runSemantic) {
     const byQ = new Map();
     for (const [id, q] of Object.entries(req.questions ?? {})) {
       const fired = lintQuestion(id, q, { rules: config.rules })
@@ -284,7 +292,7 @@ async function lintOne(req, config, label) {
     }
     try {
       const sem = await semanticLint(req, { structuralByQuestion: byQ, rules: config.rules });
-      findings.push(...sem.findings);
+      findings = [...settleEscapeHatch(findings, sem.raw), ...sem.findings];
       semantic.calls = sem.calls;
       semantic.usage = sem.usage;
     } catch (e) {

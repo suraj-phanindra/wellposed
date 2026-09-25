@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { semanticLint, CHECKS, HIGH, LOW } from '../scripts/semantic.mjs';
+import { semanticLint, settleEscapeHatch, CHECKS, HIGH, LOW } from '../scripts/semantic.mjs';
 
 // A stub that answers every asked check with a fixed noul, so these run offline.
 function stubFetch(pFor) {
@@ -105,4 +105,13 @@ test('a thrown network error is retried, and reported cleanly if it persists', a
   assert.equal(r.calls, 1, 'one billed call after one retried blip');
   await assert.rejects(semanticLint(req, { apiKey: 'test', fetchImpl: blip(99), maxRetries: 1 }),
     (e) => e.code === 'SEMANTIC_NETWORK' && /UND_ERR_CONNECT_TIMEOUT/.test(e.message));
+});
+
+test('jev-on-jev settles the structural escape-hatch warning', () => {
+  const warn = (questionId) => ({ rule: 'choice/no-escape-hatch', severity: 'warn', message: 'no hatch.', questionId });
+  const raw = [{ questionId: 'exhaustive', rule: 'semantic/escape-hatch-needed', pDefect: 0.42 },
+               { questionId: 'needs', rule: 'semantic/escape-hatch-needed', pDefect: 0.81 }];
+  const out = settleEscapeHatch([warn('exhaustive'), warn('needs'), warn('not_asked')], raw);
+  assert.deepEqual(out.map((f) => f.severity), ['info', 'warn', 'warn']);
+  assert.match(out[0].message, /exhaustive \(P=0\.42\)/);
 });

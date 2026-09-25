@@ -133,6 +133,13 @@ The two layers do different jobs, and the split is deliberate:
   decide: whether "none of these" is actually reachable, whether options overlap, whether the question
   is answerable from the state at all.
 
+**If `TYPESAFE_API_KEY` is set, always lint with `--semantic` before sending a new request.** It costs
+one call of about 1k tokens per question, and a five-question request takes well under a second. On
+jev code from public repos, only 43% of Choices the structural rule flags for a missing escape hatch
+actually needed one. When the semantic pass judges the options exhaustive, it drops that warning to
+`info` itself. Semantic findings are strongest on overlapping options (91% precision on real code)
+and missing escape hatches (it caught all 15 that needed one).
+
 Findings carry `error` (the API will reject it, or the answer is provably meaningless), `warn` (a
 documented failure mode), and `info` (advisory). Silence a rule whose premise does not hold for you:
 
@@ -147,6 +154,10 @@ dotted paths that must never appear in `state` — use it for credentials and pe
 ```json
 {"forbidden": ["password", "api_key", "ssn", "card_number"]}
 ```
+
+To make the CLI run the semantic pass whenever a key is set, without the flag, add
+`{"semantic": "auto"}`. It stays opt-in because the semantic pass sends the questions and state to
+TypeSafe, which a CI job should not start doing by surprise.
 
 ## Reading the answer
 

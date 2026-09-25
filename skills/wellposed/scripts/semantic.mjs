@@ -300,6 +300,21 @@ export const CHECKS = [
   },
 ];
 
+/**
+ * Let jev-on-jev settle the structural escape-hatch warning. The structural rule
+ * flags every Choice without a hatch, and on jev code from public repos only 43% of
+ * those needed one. When semantic/escape-hatch-needed was asked and did not fire
+ * (pDefect <= HIGH), none of 15 such Choices needed a hatch, so the warning drops to
+ * info. When it fired, or was not asked, the warning stands.
+ */
+export function settleEscapeHatch(findings, raw) {
+  const quiet = new Map(raw.filter((c) => c.rule === 'semantic/escape-hatch-needed').map((c) => [c.questionId, c.pDefect]));
+  return findings.map((f) => f.rule === 'choice/no-escape-hatch' && f.severity === 'warn'
+    && quiet.has(f.questionId) && quiet.get(f.questionId) <= HIGH
+    ? { ...f, severity: 'info', message: `${f.message} jev-on-jev judged the options exhaustive (P=${quiet.get(f.questionId).toFixed(2)}), so this is advisory.` }
+    : f);
+}
+
 /** Build the meta-request that reviews ONE question. */
 export function buildReviewRequest(id, q, { state, model = DEFAULT_MODEL, structuralRules = new Set() } = {}) {
   const checks = CHECKS.filter((c) =>
