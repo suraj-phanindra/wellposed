@@ -132,6 +132,19 @@ function bundles(text) {
   return false;
 }
 
+// "How many" in a sentence that only describes the state or guides the model
+// ("`volume` summarizes how many lines matched") is not the question, and "how many
+// X should…" asks for a decision, which is jev's work. On jev code from public repos
+// both shapes were flagged and both reviewers called every one of them clean.
+const RE_QUANTITY_DECISION = /\bhow many\s+(?:[\w-]+\s+){0,3}(?:should|ought)\b/gi;
+// "…no matter how many likes it has", "…not how many file names are specified":
+// the phrase says the count does not matter.
+const RE_COUNT_DISMISSED = /\b(?:no matter|regardless of|irrespective of|not|nor)\s+how many\b/gi;
+function questionText(text) {
+  const qs = text.match(/[^.?!\n]*\?/g);
+  return qs ? qs.join(' ') : text;
+}
+
 // §4 Indirection — double negatives cost accuracy. The prefix must actually
 // negate: matching /(un|in|non|dis)\w+/ keys on spelling, so "invoice",
 // "installed", "interested" and "insured" all counted as negations.
@@ -578,13 +591,15 @@ export function lintQuestion(id, q, opts = {}) {
     // asking jev to count, so the corrected form must not get the same warning.
     const bucketed = (rule === 'jev/counting' || rule === 'jev/arithmetic')
       && q.type === 'score' && Array.isArray(q.criteria) && q.criteria.length >= 2;
-    const scanned = rule === 'jev/double-negative' ? text.replace(IMPERATIVE_PROHIBITION, ' ') : text;
+    const scanned = rule === 'jev/double-negative' ? text.replace(IMPERATIVE_PROHIBITION, ' ')
+      : rule === 'jev/counting' ? questionText(text).replace(RE_QUANTITY_DECISION, ' ').replace(RE_COUNT_DISMISSED, ' ')
+      : text;
     if (rule === 'jev/bundled-judgments' ? bundles(scanned) : re.test(scanned)) {
       // For phrase-triggered rules the matched words are the useful evidence;
       // for structural patterns they read as nonsense, so show the instruction.
       const quote = ['jev/bundled-judgments', 'jev/double-negative'].includes(rule)
         ? `"${text.trim().slice(0, 80)}${text.trim().length > 80 ? '…' : ''}"`
-        : `"${firstMatch(re, text)}"`;
+        : `"${firstMatch(re, scanned)}"`;
       out.push(finding(rule, bucketed ? 'info' : 'warn', bucketed
         ? `Question "${id}" ${msg}: ${quote}, but its Score levels bucket the answer, which is the documented mitigation. Check the levels are not themselves exact counts.`
         : `Question "${id}" ${msg}: ${quote}. jev-1.13 is documented to be unreliable here.`, {

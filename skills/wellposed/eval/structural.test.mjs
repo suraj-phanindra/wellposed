@@ -625,3 +625,19 @@ test('bundling is two yes/no questions joined, not a clarifying statement or a w
     'Is this submission on the assigned prompt, and is it written at a 7th-grade reading level?',
   ]) assert.equal(b(two), true, two);
 });
+
+test('counting fires on the question, not on descriptions, decisions or dismissed counts', () => {
+  const c = (instructions, type = 'noul') => lintQuestion('q', { type, instructions }).some((f) => f.rule === 'jev/counting');
+  // Shapes from jev code in public repos that two blind reviewers both called clean.
+  for (const clean of [
+    '`volume` summarizes how many lines matched. Would an on-call engineer dismiss this batch as noise?',
+    'Independent of whether they bluff, how many cards should they commit to this play?',
+    'Is this post news? A meme is humor, never news, no matter how many likes it has.',
+    'Judge the observable behavior, not how many file names are specified.',
+  ]) assert.equal(c(clean), false, clean);
+  for (const real of [
+    'How many bedrooms does this listing advertise?',
+    'How many of the items in `items` are names of fruit?',
+    'If each section were shown alone, how many would still make complete sense?',
+  ]) assert.equal(c(real), true, real);
+});
