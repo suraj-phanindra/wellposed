@@ -1052,6 +1052,257 @@
       "label": "well-posed",
       "defect_code": null,
       "source": "semantic-corpus#56 (blind-generated 2026-09-21)"
+    },
+    {
+      "id": 80,
+      "intent": "pick a game move from the two legal ones",
+      "question": {
+        "type": "choice",
+        "instructions": "Pick the move with the best chance of winning this turn, using the estimates in `battle`.",
+        "criteria": {
+          "strike": null,
+          "guard": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 81,
+      "intent": "gate a pull request",
+      "question": {
+        "type": "choice",
+        "instructions": "Decide what happens to this pull request: merge it, hold it, or send it to a person for review.",
+        "criteria": {
+          "merge": null,
+          "hold": null,
+          "human_review": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 82,
+      "intent": "steer a game character that must move",
+      "question": {
+        "type": "choice",
+        "instructions": "The character has to move this frame. Which direction?",
+        "criteria": {
+          "up": null,
+          "down": null,
+          "left": null,
+          "right": null,
+          "up_left": null,
+          "up_right": null,
+          "down_left": null,
+          "down_right": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 83,
+      "intent": "screen a job applicant",
+      "question": {
+        "type": "choice",
+        "instructions": "Screen this applicant: advance them, disqualify them, or send them to manual review.",
+        "criteria": {
+          "ADVANCE": null,
+          "DISQUALIFY": null,
+          "MANUAL_REVIEW": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 84,
+      "intent": "block malicious shell commands",
+      "question": {
+        "type": "noul",
+        "instructions": "Judging only from the command: is this a denial-of-service attack, mass scanning, credential theft, or an action against a system the operator does not own and has no authorization to touch?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 85,
+      "intent": "classify a build failure",
+      "question": {
+        "type": "choice",
+        "instructions": "Classify the failure shown in `log`. Do not infer a root cause without evidence.",
+        "criteria": {
+          "timeout": null,
+          "auth_error": null,
+          "crash": null,
+          "other": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 86,
+      "intent": "keep a chat bot quiet when told to",
+      "question": {
+        "type": "noul",
+        "instructions": "Should the assistant stay quiet in `thread`? The request to stop replying is still in force and has not been withdrawn."
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 87,
+      "intent": "choose the next function to read while debugging",
+      "question": {
+        "type": "choice",
+        "instructions": "Which related function most likely contains the defect in `diff`, and is worth reading next?",
+        "criteria": {
+          "parse_input": null,
+          "validate": null,
+          "render": null,
+          "none_of_these": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 88,
+      "intent": "decide whether a damaged car is repairable",
+      "question": {
+        "type": "noul",
+        "instructions": "这辆车还能修好吗，而不是必须报废？"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 89,
+      "intent": "forecast whether a sales lead replies",
+      "question": {
+        "type": "noul",
+        "instructions": "How likely is the lead in `note` to reply this week?"
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 90,
+      "intent": "route a support ticket",
+      "question": {
+        "type": "choice",
+        "instructions": "Which team should act on `ticket`?",
+        "criteria": {
+          "billing": null,
+          "technical": null,
+          "no_action_needed": null
+        }
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 91,
+      "intent": "keep memes out of a news feed",
+      "question": {
+        "type": "noul",
+        "instructions": "Is `post` news? A meme is never news, no matter how many likes it has."
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 92,
+      "intent": "check whether a query already limits its date range",
+      "question": {
+        "type": "noul",
+        "instructions": "Is the requested date range already enforced by a filter in `query`? Do not calculate or compare dates."
+      },
+      "label": "well-posed",
+      "defect_code": null,
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 93,
+      "intent": "confirm a refund",
+      "question": {
+        "type": "noul",
+        "instructions": "Did the refund go through, and is the amount right?"
+      },
+      "label": "bundled-judgments",
+      "defect_code": "D2",
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 94,
+      "intent": "flag agent steps that need approval",
+      "question": {
+        "type": "noul",
+        "instructions": "Is `step` something the user did not ask for, and that they would want to approve before it runs?"
+      },
+      "label": "bundled-judgments",
+      "defect_code": "D2",
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 95,
+      "intent": "accept or reject bug reports",
+      "question": {
+        "type": "noul",
+        "instructions": "Is a missing stack trace not by itself insufficient to accept the bug report?"
+      },
+      "label": "jev-double-negative",
+      "defect_code": "D4x",
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 96,
+      "intent": "file news articles by section",
+      "question": {
+        "type": "choice",
+        "instructions": "Which section does this article belong in?",
+        "criteria": {
+          "world": null,
+          "sports": null,
+          "business": null,
+          "technology": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4",
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
+    },
+    {
+      "id": 97,
+      "intent": "understand what a returning customer wants",
+      "question": {
+        "type": "choice",
+        "instructions": "What does the customer want to happen?",
+        "criteria": {
+          "exchange": null,
+          "refund": null,
+          "replacement": null,
+          "information": null
+        }
+      },
+      "label": "no-escape-hatch",
+      "defect_code": "D4",
+      "source": "wild-2026-09-25 (paraphrase of a public jev question; label = consensus of two blind reviewers)"
     }
   ],
   "corrections": [
@@ -1073,6 +1324,11 @@
       "batch": "imported-from-semantic-corpus-2026-09-24",
       "n": 3,
       "why": "Score-level bundling had no structural rule, and the obvious detector - counting and/or in levels - fires on most well-formed severity ladders. These three items were written by the semantic corpus's blind generators, not by the author of the new rule: one real positive and two adversarial ladders that a keyword detector misfires on. Imported so the structural scoreboard measures the new rule against cases it was not designed around."
+    },
+    {
+      "batch": "wild-2026-09-25",
+      "n": 18,
+      "why": "Linting jev code from 825 public repos, two blind reviewers found the structural rules at 0-40% precision on real questions while this corpus reported 92%: its 3-6 textbook items per rule could not see real-world phrasing. These are paraphrases of real questions both reviewers agreed on, kept only where their definition and the rubric agree. They include shapes the linter still gets wrong (exhaustive option sets it flags, a list-defined property it calls bundled, a bundle joined by a relative clause it misses), so the metric reflects real use rather than the rules' best case."
     }
   ]
 }

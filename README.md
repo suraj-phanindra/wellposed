@@ -190,7 +190,7 @@ first; expensive-and-accurate resolves the leftovers.
 
 ### 4. A test set that proves the linter works
 
-This is the part most tools skip. wellposed ships 79 hand-labelled questions, plus the
+This is the part most tools skip. wellposed ships 97 hand-labelled questions, plus the
 grading rubric written **before** anything was generated, so the goalposts couldn't move afterward.
 
 Run `wellposed eval` and it scores itself:
@@ -198,21 +198,24 @@ Run `wellposed eval` and it scores itself:
 ```
   hand label                      n   caught
   ----------------------------------------------
-  no-escape-hatch                 9      9/9   fully covered
+  no-escape-hatch                11    11/11  fully covered
   degree-as-noul                  6      6/6   fully covered
   crossed-dimensions              1      1/1   fully covered
   jev-date-comparison             2      2/2   fully covered
   jev-counting / arithmetic       2      2/2   fully covered
-  jev-double-negative             1      1/1   fully covered
-  bundled-judgments               3      2/3   partial
+  jev-double-negative             2      2/2   fully covered
+  bundled-judgments               5      3/5   partial
   overlapping-choice-options      1      0/1   deferred to the semantic layer
   unanswerable-from-state         2      0/2   deferred to the semantic layer
 
-  recall    23/27 = 85% [68-94%]      precision  23/25 = 92% [75-98%]
+  recall    27/32 = 84% [68-93%]      precision  27/34 = 79% [63-90%]
 ```
 
-In plain terms: **it catches 85% of the known problems, and 92% of what it flags is genuinely a
-problem.** The bracketed ranges are 95% confidence intervals, and they are wide because the corpus is
+In plain terms: **it catches 84% of the known problems, and 79% of what it flags is genuinely a
+problem.** Precision used to read 92%. It fell when we added 18 questions paraphrased from real jev
+code in public repos ([research/wild](research/wild/README.md)), because the earlier corpus had
+never seen real-world phrasing. Most of the remaining false alarms are Choices whose options really
+are exhaustive; run `--semantic` and jev-on-jev demotes those. The bracketed ranges are 95% confidence intervals, and they are wide because the corpus is
 small — read the point estimates accordingly. Those figures are exactly what `wellposed eval` prints; the table above them is an
 abridged view, since the real output also counts the clean questions and names its own false
 positives. Run the command for the full version. If a future change makes the linter worse, the
