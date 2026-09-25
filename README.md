@@ -221,7 +221,7 @@ abridged view, since the real output also counts the clean questions and names i
 positives. Run the command for the full version. If a future change makes the linter worse, the
 numbers drop and you see it.
 
-Plus 48 unit tests. Three exist specifically because we sent those exact broken requests to the real
+Plus 66 unit tests. Three exist specifically because we sent those exact broken requests to the real
 API and recorded what it said.
 
 **The semantic layer has its own corpus**, added later than it should have been. 70 items, seven
@@ -434,7 +434,7 @@ docs and the one most often skipped.
 ## Development
 
 ```sh
-npm test                 # 48 unit tests, zero dependencies
+npm test                 # 66 unit tests, zero dependencies
 npm run eval             # score the linter against the corpus
 npm run lint:example     # lint the bundled example
 ```
