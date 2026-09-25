@@ -134,8 +134,12 @@ export const CHECKS = [
       true: 'At least two options overlap, so probability mass would be split between them.',
       false: 'The options are mutually exclusive; at most one can describe any given input.',
     },
-    message: (p) => `has overlapping options (P(overlap)=${p.toFixed(2)}), which splits probability mass and makes the top pick unstable`,
-    fix: 'Merge or re-cut the overlapping options so at most one can apply.',
+    // Measured on real Choices with inputs where two options were true: jev picked
+    // one of them consistently (reversing the option order changed 0 of 25 answers),
+    // but at lower confidence (10 of 25 reached 0.9, vs 31 of 32 when one fit), and
+    // the code never learns the second label applied. Not "unstable".
+    message: (p) => `has overlapping options (P(overlap)=${p.toFixed(2)}): when two apply, jev returns one of them at lower confidence and your code never learns the other applied`,
+    fix: 'Merge or re-cut the options so at most one can apply, or ask one Noul per option if several can be true at once.',
     doc: 'https://docs.typesafe.ai/primitives/choice',
   },
   {
