@@ -2,7 +2,7 @@
 
 **Lint your jev requests before they come back confidently wrong.**
 
-[![npm](https://img.shields.io/npm/v/wellposed)](https://www.npmjs.com/package/wellposed) [![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![npm](https://img.shields.io/npm/v/wellposed)](https://www.npmjs.com/package/wellposed) [![Security: A — Skills Directory](https://www.skillsdirectory.com/api/skills/suraj-phanindra-wellposed/badge)](https://www.skillsdirectory.com/skills/suraj-phanindra-wellposed) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Offline linter and agent skill for jev requests: 45 structural checks with no model call (missing
 none-of-the-above options, broken state paths, wrong criteria shapes), plus jev-on-jev checks for what
